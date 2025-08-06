@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Basic user profile permissions
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Darts games permissions
+    match /dartsGames/{gameId} {
+      // Anyone authenticated can read games
+      allow read: if request.auth != null;
+      
+      // Anyone can create a game if they're authenticated and set themselves as host
+      allow create: if request.auth != null && 
+                      request.resource.data.hostId == request.auth.uid;
+      
+      // Only host or players can update the game
+      allow update: if request.auth != null && 
+                      (resource.data.hostId == request.auth.uid || 
+                       request.auth.uid in resource.data.playerIds ||
+                       request.auth.uid in resource.data.spectators);
+      
+      // Only the host can delete the game
+      allow delete: if request.auth != null && 
+                      resource.data.hostId == request.auth.uid;
+      
+      // Game turns subcollection - only host or current player can write
+      match /turns/{turnId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && 
+                        (get(/databases/$(database)/documents/dartsGames/$(gameId)).data.hostId == request.auth.uid ||
+                         request.resource.data.playerId == request.auth.uid);
+        allow update, delete: if request.auth != null &&
+                                get(/databases/$(database)/documents/dartsGames/$(gameId)).data.hostId == request.auth.uid;
+      }
+    }
+    
+    // Player statistics
+    match /playerStats/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

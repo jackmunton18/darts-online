@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import 'abstracts/animation';
+
+@import 'base/reset';
+@import 'base/typography';

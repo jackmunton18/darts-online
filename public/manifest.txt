@@ -1,0 +1,16 @@
+{
+    "name": "Holly's Birthday thing",
+    "description": "A birthday thing for Holly",
+    "start_url": "/",
+    "scope": "/",
+    "lang": "en-GB",
+    "theme_color": "#f9efe3",
+    "display": "standalone",
+    "icons": [
+        {
+            "src": "/ginger.jpg",
+            "sizes": "400x400",
+            "type": "image/jpg"
+        }
+    ]
+}

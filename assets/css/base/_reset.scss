@@ -1,0 +1,14 @@
+
+.hide-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+body {
+    background-color: #f9efe3;
+    color: #333;
+
+}
