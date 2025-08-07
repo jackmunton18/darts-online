@@ -1,15 +1,15 @@
 # filepath: /Users/jackmunton/source/darts/netlify.toml
 [build]
-  command = "npm install && npm run build"
+  command = "npm install && npm run build && ./scripts/post-build.sh"
   publish = "dist"
   
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
   NPM_FLAGS = "--production=false"
 
 [functions]
-  directory = ".netlify/functions-internal"
   node_bundler = "esbuild"
+  external_node_modules = ["firebase-admin"]
 
 # Netlify Functions for server API routes - these handle SSR
 [[redirects]]

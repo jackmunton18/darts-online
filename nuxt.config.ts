@@ -45,6 +45,17 @@ export default defineNuxtConfig({
   // Configure nitro for Netlify deployment
   nitro: {
     preset: 'netlify',
+    experimental: {
+      wasm: false
+    },
+    esbuild: {
+      options: {
+        target: 'node18'
+      }
+    },
+    output: {
+      serverDir: '.netlify/functions'
+    },
     prerender: {
       // Exclude dynamic routes from prerendering
       ignore: [
