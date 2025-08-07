@@ -1,6 +1,6 @@
 # filepath: /Users/jackmunton/source/darts/netlify.toml
 [build]
-  command = "npm install && npm run build && ./scripts/post-build.sh"
+  command = "npm install && npm run build && bash scripts/post-build.sh"
   publish = "dist"
   
 [build.environment]
