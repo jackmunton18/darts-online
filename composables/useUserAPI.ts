@@ -1,4 +1,6 @@
+import { doc, getDoc, setDoc, updateDoc, query, collection, where, getDocs } from 'firebase/firestore'
 import type { FirestoreUser } from '~/types/user'
+import { generateUsername } from '~/types/user'
 
 interface UserResponse {
   success: boolean;
@@ -7,80 +9,124 @@ interface UserResponse {
 }
 
 export const useUserAPI = () => {
-  // Use authStore to get ID token instead of direct Firebase access
-  const authStore = useAuthStore()
   const currentUser = ref<FirestoreUser | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
-  // Get the current user's ID token
-  const getIdToken = async (): Promise<string> => {
-    try {
-      return await authStore.getIdToken()
-    } catch (err) {
+  // Get Firestore instance
+  const getFirestore = () => {
+    const { $firestore } = useNuxtApp()
+    if (!$firestore) {
+      throw new Error('Firestore not initialized')
+    }
+    return $firestore
+  }
+
+  // Get current Firebase Auth user
+  const getCurrentAuthUser = () => {
+    const { $auth } = useNuxtApp()
+    if (!$auth?.currentUser) {
       throw new Error('User not authenticated')
     }
+    return $auth.currentUser
   }
 
   // Create or update user in Firestore
-  const createUser = async (userData: { firstName: string; lastName: string; email: string }) => {
+  const createUser = async (userData: { firstName: string; lastName: string; email: string }): Promise<UserResponse> => {
     isLoading.value = true
     error.value = null
 
     try {
-      const idToken = await getIdToken()
+      const firestore = getFirestore()
+      const authUser = getCurrentAuthUser()
       
-      const response = await $fetch<UserResponse>('/api/users/create', {
-        method: 'POST',
-        body: userData,
-        headers: {
-          'Authorization': `Bearer ${idToken}`
+      // Generate username if not provided
+      const username = generateUsername(userData.firstName)
+      
+      const userDoc: Omit<FirestoreUser, 'id'> = {
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        username,
+        email: userData.email,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        friends: [],
+        gameStats: {
+          gamesPlayed: 0,
+          gamesWon: 0,
+          averageScore: 0,
+          highestScore: 0,
+          highestCheckout: 0
         }
-      })
+      }
+
+      // Create user document with the auth user's UID
+      await setDoc(doc(firestore, 'users', authUser.uid), userDoc)
       
-      if (response.success && response.user) {
-        currentUser.value = response.user
+      const newUser: FirestoreUser = {
+        id: authUser.uid,
+        ...userDoc
       }
       
-      return response
+      currentUser.value = newUser
+      
+      return {
+        success: true,
+        user: newUser
+      }
     } catch (err: any) {
       error.value = err.message || 'Failed to create user'
-      throw err
+      return {
+        success: false,
+        message: error.value || 'Failed to create user'
+      }
     } finally {
       isLoading.value = false
     }
   }
 
   // Get current user's details
-  const getCurrentUser = async () => {
+  const getCurrentUser = async (): Promise<UserResponse> => {
     isLoading.value = true
     error.value = null
 
     try {
-      const idToken = await getIdToken()
+      const firestore = getFirestore()
+      const authUser = getCurrentAuthUser()
       
-      const response = await $fetch<UserResponse>('/api/users/me', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${idToken}`
+      const userDocRef = doc(firestore, 'users', authUser.uid)
+      const userSnapshot = await getDoc(userDocRef)
+      
+      if (userSnapshot.exists()) {
+        const userData = userSnapshot.data()
+        const user: FirestoreUser = {
+          id: authUser.uid,
+          ...userData,
+          // Convert Firestore timestamps to Date objects
+          createdAt: userData.createdAt?.toDate() || new Date(),
+          updatedAt: userData.updatedAt?.toDate() || new Date()
+        } as FirestoreUser
+        
+        currentUser.value = user
+        
+        return {
+          success: true,
+          user
         }
-      })
-      
-      if (response.success && response.user) {
-        currentUser.value = response.user
-      }
-      
-      return response
-    } catch (err: any) {
-      // If the user is not found, it might be a new user that hasn't been created yet
-      if (err.response?.status === 404) {
+      } else {
         error.value = 'User not found'
         currentUser.value = null
-        return { success: false, message: 'User not found' }
+        return {
+          success: false,
+          message: 'User not found'
+        }
       }
-      
+    } catch (err: any) {
       error.value = err.message || 'Failed to get user'
-      throw err
+      return {
+        success: false,
+        message: error.value || 'Failed to get user'
+      }
     } finally {
       isLoading.value = false
     }
@@ -92,48 +138,61 @@ export const useUserAPI = () => {
   }
 
   // Update user profile
-  const updateProfile = async (userData: { firstName: string; lastName: string; username: string }) => {
+  const updateProfile = async (userData: { firstName: string; lastName: string; username: string }): Promise<UserResponse> => {
     isLoading.value = true
     error.value = null
 
     try {
-      const idToken = await getIdToken()
+      const firestore = getFirestore()
+      const authUser = getCurrentAuthUser()
       
-      const response = await $fetch<UserResponse>('/api/users/update', {
-        method: 'POST',
-        body: userData,
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      })
-      
-      if (response.success && response.user) {
-        currentUser.value = response.user
+      const updateData = {
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        username: userData.username,
+        updatedAt: new Date()
       }
+
+      const userDocRef = doc(firestore, 'users', authUser.uid)
+      await updateDoc(userDocRef, updateData)
       
-      return response
+      // Get updated user data
+      const updatedResponse = await getCurrentUser()
+      
+      return updatedResponse
     } catch (err: any) {
       error.value = err.message || 'Failed to update profile'
-      throw err
+      return {
+        success: false,
+        message: error.value || 'Failed to update profile'
+      }
     } finally {
       isLoading.value = false
     }
   }
 
   // Check username availability
-  const checkUsernameAvailability = async (username: string) => {
+  const checkUsernameAvailability = async (username: string): Promise<{available: boolean; message: string}> => {
     try {
-      const idToken = await getIdToken()
+      const firestore = getFirestore()
+      const authUser = getCurrentAuthUser()
       
-      const response = await $fetch<{available: boolean; message: string}>('/api/users/check-username', {
-        method: 'GET',
-        query: { username },
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      })
+      // Query for users with this username, excluding current user
+      const usersQuery = query(
+        collection(firestore, 'users'),
+        where('username', '==', username)
+      )
       
-      return response
+      const querySnapshot = await getDocs(usersQuery)
+      
+      // Check if any other user has this username
+      const isAvailable = querySnapshot.empty || 
+        (querySnapshot.size === 1 && querySnapshot.docs[0].id === authUser.uid)
+      
+      return {
+        available: isAvailable,
+        message: isAvailable ? 'Username is available' : 'Username is already taken'
+      }
     } catch (err: any) {
       error.value = err.message || 'Failed to check username availability'
       throw err

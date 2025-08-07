@@ -109,10 +109,20 @@ onMounted(async () => {
     try {
         if (typeof subscribeToGame === 'function') {
             await subscribeToGame(gameId.value)
+            
+            // Add a small delay to ensure data is loaded
+            setTimeout(() => {
+                if (!currentGame.value) {
+                    toast.addMessage({
+                        type: 'error',
+                        message: 'Game data could not be loaded. Please try again.'
+                    })
+                }
+                isLoading.value = false
+            }, 1500)
         } else {
             throw new Error('Game subscription function not available')
         }
-        isLoading.value = false
     } catch (error) {
         console.error('Failed to subscribe to game:', error)
         toast.addMessage({

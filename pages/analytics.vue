@@ -564,7 +564,7 @@ const loadUserGames = async () => {
         // Query for finished games ordered by finishedAt
         // We'll need to filter client-side since Firestore doesn't support 
         // array-contains queries with other filters efficiently
-        const gamesRef = collection(db, 'dartsGames')
+        const gamesRef = collection(db, 'games')
         const q = query(
             gamesRef,
             where('status', '==', 'finished'),

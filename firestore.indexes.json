@@ -15,7 +15,7 @@
       ]
     },
     {
-      "collectionGroup": "dartsGames",
+      "collectionGroup": "games",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "collectionGroup": "dartsGames",
+      "collectionGroup": "games",
       "queryScope": "COLLECTION",
       "fields": [
         {

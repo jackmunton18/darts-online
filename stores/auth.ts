@@ -81,28 +81,23 @@ export const useAuthStore = defineStore('auth', () => {
       
       // Create user in our Firestore collection
       if (firebaseUser) {
-        // Create a user document in Firestore
         try {
           // Split name into first and last name
           const nameParts = name.trim().split(' ')
           const firstName = nameParts[0] || ''
           const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''
 
-          // Get ID token for API call
-          const idToken = await firebaseUser.getIdToken()
-          
           console.log('Attempting to create Firestore user document...', { firstName, lastName, email })
           
-          // Create the user in Firestore using our API
-          const response = await $fetch('/api/users/create', {
-            method: 'POST',
-            body: { firstName, lastName, email },
-            headers: {
-              'Authorization': `Bearer ${idToken}`
-            }
-          })
+          // Create the user in Firestore using direct Firestore calls
+          const userAPI = useUserAPI()
+          const response = await userAPI.createUser({ firstName, lastName, email })
           
           console.log('Firestore user creation response:', response)
+          
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to create user profile')
+          }
         } catch (userCreateErr) {
           console.error('Failed to create user document in Firestore:', userCreateErr)
           

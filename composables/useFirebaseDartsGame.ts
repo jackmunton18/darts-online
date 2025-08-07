@@ -16,6 +16,7 @@ export interface FirebaseGame extends Omit<GameState, 'createdAt' | 'finishedAt'
   finishedAt?: Timestamp
   hostId: string
   spectators: string[]
+  legStarterIndices?: number[] // Array of player indices that should start legs in order
 }
 
 interface StoredGameSession {
@@ -65,7 +66,13 @@ export const useFirebaseDartsGame = () => {
   }
 
   const { $firestore } = useNuxtApp()
-  const db = getFirestore()
+  
+  // Use the Firestore instance from our plugin
+  if (!$firestore) {
+    throw new Error('Firestore not initialized')
+  }
+  
+  const db = $firestore
   const toast = useNotificationStore()
   const authStore = useAuthStore()
   const userStore = useUserStore()
@@ -170,10 +177,13 @@ export const useFirebaseDartsGame = () => {
         totalThrows: 0,
         totalTurns: 0,
         currentTurnThrows: 0,
+        // Initialize with alternating player indices for leg starters
+        // Will be populated with all player indices once all players join
+        legStarterIndices: [0],
         createdAt: serverTimestamp() as Timestamp
       }
 
-      const gamesCollection = collection(db, 'dartsGames')
+      const gamesCollection = collection(db, 'games')
       const docRef = await addDoc(gamesCollection, gameData)
       
       gameId.value = docRef.id
@@ -210,37 +220,117 @@ export const useFirebaseDartsGame = () => {
       isLoading.value = true
       error.value = null
 
-      // Use server API to join game (avoids Firestore permission issues)
-      const token = await authStore.getIdToken()
-      const response = await fetch('/api/games/join', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ gameCode, role })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to join game')
+      // Find game by code using Firestore query
+      const gamesQuery = query(
+        collection(db, 'games'),
+        where('gameCode', '==', gameCode.toUpperCase()),
+        where('status', '==', 'waiting')
+      )
+      
+      const gamesSnapshot = await getDocs(gamesQuery)
+      
+      if (gamesSnapshot.empty) {
+        throw new Error('Game not found or already in progress')
+      }
+      
+      const gameDoc = gamesSnapshot.docs[0]
+      const gameData = gameDoc.data() as FirebaseGame
+      const foundGameId = gameDoc.id
+      
+      // Check if user is already in the game
+      const userId = authStore.currentUser.id
+      const isAlreadyPlayer = gameData.players.some(p => p.id === userId)
+      const isAlreadySpectator = gameData.spectators?.includes(userId)
+      
+      if (isAlreadyPlayer || isAlreadySpectator) {
+        // User is already in the game, just subscribe to it
+        gameId.value = foundGameId
+        await subscribeToGame(foundGameId)
+        
+        // Store session
+        saveGameSession()
+        
+        return { gameId: foundGameId, success: true }
+      }
+      
+      // Get user data from Firestore for proper display name
+      const userStore = useUserStore()
+      if (!userStore.user) {
+        await userStore.fetchUser()
+      }
+      
+      // Use preferred username from user profile if available
+      const displayName = userStore.user?.username || 
+                          (userStore.user?.firstName ? `${userStore.user.firstName} ${userStore.user.lastName || ''}`.trim() : 
+                          authStore.currentUser.name)
+      
+      // Add user to the game
+      if (role === 'player') {
+        if (gameData.players.length >= 4) { // Assuming max 4 players for darts
+          throw new Error('Game is full')
+        }
+        
+        // Add as player
+        const newPlayer = {
+          id: userId,
+          name: displayName,
+          currentScore: 501, // Standard starting score for 501 darts
+          legs: 0,
+          sets: 0,
+          totalThrows: 0,
+          totalScore: 0,
+          averagePerTurn: 0,
+          throwsOver100: 0,
+          doublesHit: 0,
+          triplesHit: 0,
+          singlesHit: 0,
+          bullsHit: 0,
+          checkoutAttempts: 0,
+          successfulCheckouts: 0,
+          highestCheckout: 0,
+          highestTurn: 0,
+          totalTurns: 0,
+          checkoutPercentage: 0
+        }
+        
+        // Get the current player index in the updated players array
+        const playerIndex = gameData.players.length
+        
+        // Update leg starter indices to include the new player
+        const existingIndices = gameData.legStarterIndices || []
+        const updatedIndices = [...new Set([...existingIndices, playerIndex])]
+        
+        // Sort the indices to ensure consistent order
+        updatedIndices.sort()
+        
+        await updateDoc(doc(db, 'games', foundGameId), {
+          players: [...gameData.players, newPlayer],
+          // Update leg starter indices to include all players
+          legStarterIndices: updatedIndices,
+          updatedAt: serverTimestamp()
+        })
+      } else {
+        // Add as spectator
+        const spectators = gameData.spectators || []
+        await updateDoc(doc(db, 'games', foundGameId), {
+          spectators: [...spectators, userId],
+          updatedAt: serverTimestamp()
+        })
       }
 
-      if (!data.gameId) {
-        throw new Error('Invalid response from server')
-      }
-
-      // Subscribe to the game
-      gameId.value = data.gameId
-      subscribeToGame(data.gameId)
-
-      toast.addMessage({ 
-        type: 'success', 
-        message: data.message || (role === 'player' ? 'Joined game as player' : 'Now spectating game')
+      gameId.value = foundGameId
+      await subscribeToGame(foundGameId)
+      
+      // Store session
+      saveGameSession()
+      
+      // Add success notification
+      toast.addMessage({
+        type: 'success',
+        message: role === 'player' ? 'Joined game as player' : 'Now spectating game'
       })
 
-      return { gameId: data.gameId }
+      return { gameId: foundGameId, success: true }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to join game'
       error.value = message
@@ -265,7 +355,7 @@ export const useFirebaseDartsGame = () => {
       isLoading.value = true
       error.value = null
 
-      const gameRef = doc(db, 'dartsGames', gameId.value)
+      const gameRef = doc(db, 'games', gameId.value)
       
       // Initialize the first leg and set data
       const now = new Date().toISOString()
@@ -337,6 +427,26 @@ export const useFirebaseDartsGame = () => {
     }
   }
 
+  // Helper function to check if a player had a potential checkout
+  const hasCheckoutAttempt = (dartThrows: DartThrow[], remainingScore: number): boolean => {
+    // A checkout attempt should be counted when:
+    // 1. The player's score before the throw is ≤ 170 (maximum possible checkout)
+    // 2. The player's score is theoretically possible to checkout (exists in common checkouts)
+    
+    if (!dartThrows || dartThrows.length === 0) return false
+    
+    // Calculate score before this turn
+    const scoreBeforeTurn = remainingScore + dartThrows.reduce((sum, dart) => sum + dart.score, 0)
+    
+    // Check if the score before this turn was in checkout range (≤ 170)
+    if (scoreBeforeTurn > 170) return false
+    
+    // Check if the score is a valid checkout score (referring to useDartsScoring commonCheckouts)
+    // Common checkout scores are all scores from 2 to 170 that can be checked out
+    // For simplicity, we'll consider any score <= 170 and >= 2 as a potential checkout
+    return scoreBeforeTurn >= 2 && scoreBeforeTurn <= 170
+  }
+
   // Record a throw for the current player
   const recordThrow = async (dartThrows: DartThrow[]) => {
     try {
@@ -352,29 +462,375 @@ export const useFirebaseDartsGame = () => {
       isLoading.value = true
       error.value = null
 
-      // Debug logging
-      console.log('Recording throw via API:', {
-        gameId: gameId.value,
-        playerId: currentPlayer.value.id,
-        dartThrows
-      })
+      // Calculate total score for this turn
+      const totalScore = dartThrows.reduce((sum, dart) => sum + dart.score, 0)
       
-      // Use server API to record throw (avoids Firestore permission issues)
-      const token = await authStore.getIdToken()
-      const response = await fetch(`/api/games/${gameId.value}/record-throw`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ dartThrows })
+      // Create turn object
+      const newTurn: Turn = {
+        playerId: currentPlayer.value.id,
+        score: totalScore,
+        throws: dartThrows,
+        remainingScore: currentPlayer.value.currentScore - totalScore,
+        timestamp: new Date().toISOString(),
+        leg: currentGame.value.currentLeg,
+        set: currentGame.value.currentSet,
+        turnNumber: globalTurns.value.length + 1
+      }
+
+      // Add turn to Firestore turns collection
+      await addDoc(collection(db, 'games', gameId.value, 'turns'), newTurn)
+
+      // Update player's score and stats
+      let gameFinished = false
+      let legCompleted = false
+      let setCompleted = false
+      let winnerPlayerId: string | null = null
+      let currentSet = currentGame.value.currentSet
+      let currentLeg = currentGame.value.currentLeg
+      let currentStatus = currentGame.value.status
+      
+      // Use 'let' instead of 'const' to allow reassignment when game is finished
+      let updatedPlayers = currentGame.value.players.map(player => {
+        if (player.id === currentPlayer.value!.id) {
+          // Calculate new score
+          const newScore = Math.max(0, player.currentScore - totalScore)
+          
+          // Basic stats update
+          const updatedPlayer = {
+            ...player,
+            currentScore: newScore,
+            totalThrows: player.totalThrows + dartThrows.length,
+            totalScore: player.totalScore + totalScore,
+            totalTurns: player.totalTurns + 1,
+            averagePerTurn: ((player.totalScore + totalScore) / (player.totalTurns + 1)),
+            highestTurn: Math.max(player.highestTurn, totalScore)
+          }
+          
+          // Count singles, doubles, triples, and bulls
+          dartThrows.forEach(dart => {
+            if (dart.multiplier === 'double') {
+              updatedPlayer.doublesHit = (updatedPlayer.doublesHit || 0) + 1
+            } else if (dart.multiplier === 'triple') {
+              updatedPlayer.triplesHit = (updatedPlayer.triplesHit || 0) + 1
+            } else if (dart.multiplier === 'single') {
+              updatedPlayer.singlesHit = (updatedPlayer.singlesHit || 0) + 1
+              // Bulls are counted separately (both single and double bulls)
+              if (dart.value === 25) {
+                updatedPlayer.bullsHit = (updatedPlayer.bullsHit || 0) + 1
+              }
+            }
+          })
+          
+          // Update throwsOver100 counter
+          if (totalScore > 100) {
+            updatedPlayer.throwsOver100 = (updatedPlayer.throwsOver100 || 0) + 1
+          }
+          
+          // Check for checkout (when player reaches exactly 0)
+          if (newScore === 0) {
+            // In standard darts rules, a checkout must end with a double
+            const lastDart = dartThrows[dartThrows.length - 1]
+            const validCheckout = lastDart && lastDart.multiplier === 'double'
+            
+            // Count the successful checkout
+            if (validCheckout) {
+              updatedPlayer.successfulCheckouts = (updatedPlayer.successfulCheckouts || 0) + 1
+              updatedPlayer.highestCheckout = Math.max(updatedPlayer.highestCheckout || 0, totalScore)
+            }
+            
+            // This turn is considered a checkout attempt regardless of if it was successful
+            // because the player started with a score that was theoretically checkable
+            updatedPlayer.checkoutAttempts = (updatedPlayer.checkoutAttempts || 0) + 1
+            
+            updatedPlayer.checkoutPercentage = 
+              updatedPlayer.checkoutAttempts > 0 ? 
+              ((updatedPlayer.successfulCheckouts || 0) / updatedPlayer.checkoutAttempts) * 100 : 0
+            
+            // Player wins the leg
+            legCompleted = true
+            updatedPlayer.legs = (updatedPlayer.legs || 0) + 1
+            
+            // Check for set win
+            if (updatedPlayer.legs >= (currentGame.value?.legsToWin || 3)) { // Default to 3 if not set
+              setCompleted = true
+              updatedPlayer.sets = (updatedPlayer.sets || 0) + 1
+              
+              // Check for game win
+              if (updatedPlayer.sets >= (currentGame.value?.setsToWin || 1)) { // Default to 1 if not set
+                gameFinished = true
+                winnerPlayerId = player.id
+                currentStatus = 'finished'
+              } else {
+                // New set
+                currentSet++
+                currentLeg = 1
+              }
+            } else {
+              // Just a new leg in the same set
+              currentLeg++
+            }
+          } else if (hasCheckoutAttempt(dartThrows, newScore)) {
+            // Count as a checkout attempt if the player started with a score that was theoretically checkable
+            updatedPlayer.checkoutAttempts = (updatedPlayer.checkoutAttempts || 0) + 1
+          }
+          
+          return updatedPlayer
+        }
+        return player
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to record throw')
+      // Store the index of the player who won the leg if applicable
+      let legWinnerIndex = -1
+      if (legCompleted && winnerPlayerId) {
+        legWinnerIndex = currentGame.value.players.findIndex(p => p.id === winnerPlayerId)
       }
+      
+      // If leg was completed but game is not finished, reset all players' scores for the next leg
+      if (legCompleted && !gameFinished) {
+        updatedPlayers.forEach(player => {
+          player.currentScore = 501 // Reset to starting score
+        })
+      }
+      
+      // If game is finished, make sure all player data is preserved for analytics
+      if (gameFinished) {
+        // Make sure we keep ALL players in the game document, not just the current player
+        // This ensures all players appear in analytics after game completion
+        const allPlayers = [...currentGame.value.players]
+        console.log(`Game finished. Found ${allPlayers.length} players to preserve for analytics.`)
+        
+        // Make sure all player stats are preserved and correctly calculated
+        updatedPlayers = allPlayers.map(player => {
+          // Find the updated player if it exists in the updatedPlayers array
+          const updatedPlayer = updatedPlayers.find(p => p.id === player.id) || player
+          
+          // Preserve the 'leftGame' flag if it was previously set
+          if ((player as any).leftGame) {
+            (updatedPlayer as any).leftGame = true
+            (updatedPlayer as any).leftAt = (player as any).leftAt
+          }
+          
+          // Ensure these fields exist and have proper values for analytics
+          updatedPlayer.checkoutAttempts = updatedPlayer.checkoutAttempts || 0
+          updatedPlayer.successfulCheckouts = updatedPlayer.successfulCheckouts || 0
+          updatedPlayer.highestCheckout = updatedPlayer.highestCheckout || 0
+          updatedPlayer.checkoutPercentage = updatedPlayer.checkoutAttempts > 0 ? 
+            ((updatedPlayer.successfulCheckouts / updatedPlayer.checkoutAttempts) * 100) : 0
+          
+          // Keep other analytics-related fields
+          updatedPlayer.totalThrows = updatedPlayer.totalThrows || 0
+          updatedPlayer.totalScore = updatedPlayer.totalScore || 0
+          updatedPlayer.totalTurns = updatedPlayer.totalTurns || 0
+          updatedPlayer.averagePerTurn = updatedPlayer.totalTurns > 0 ? 
+            (updatedPlayer.totalScore / updatedPlayer.totalTurns) : 0
+          updatedPlayer.highestTurn = updatedPlayer.highestTurn || 0
+          
+          // Ensure throw type counts exist
+          updatedPlayer.singlesHit = updatedPlayer.singlesHit || 0
+          updatedPlayer.doublesHit = updatedPlayer.doublesHit || 0
+          updatedPlayer.triplesHit = updatedPlayer.triplesHit || 0
+          updatedPlayer.bullsHit = updatedPlayer.bullsHit || 0
+          updatedPlayer.throwsOver100 = updatedPlayer.throwsOver100 || 0
+          
+          return updatedPlayer
+        })
+        
+        console.log(`Game finished with ${updatedPlayers.length} players preserved`)
+      }
+
+      // Determine next player based on whether a leg was completed
+      let nextPlayerIndex: number
+      
+      if (legCompleted) {
+        // For a new leg, we alternate starting players by using the leg number
+        // In standard darts rules, players take turns starting legs
+        
+        // Get the player indices array - if not defined, create default using player count
+        const legStarterIndices = currentGame.value.legStarterIndices || 
+                                Array.from({ length: currentGame.value.players.length }, (_, i) => i)
+        
+        // The leg number determines who starts (1-indexed, so subtract 1 for 0-indexed array)
+        // We use modulo to cycle through all players
+        nextPlayerIndex = legStarterIndices[(currentLeg - 1) % legStarterIndices.length]
+        
+        console.log(`New leg ${currentLeg}: Starting player index set to ${nextPlayerIndex}`)
+      } else {
+        // For normal turn progression, just go to the next player in the rotation
+        nextPlayerIndex = (currentGame.value.currentPlayerIndex + 1) % currentGame.value.players.length
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        players: updatedPlayers,
+        currentPlayerIndex: nextPlayerIndex,
+        totalThrows: currentGame.value.totalThrows + dartThrows.length,
+        totalTurns: currentGame.value.totalTurns + 1,
+        currentTurnThrows: 0, // Reset for next player
+        updatedAt: serverTimestamp()
+      }
+      
+      // If a leg was completed, save the leg history
+      if (legCompleted) {
+        // Create a timestamp to use for this update
+        const now = new Date().toISOString()
+        
+        // Get current leg and set data (or initialize if missing)
+        const currentLegData = currentGame.value.currentLegData || {
+          legNumber: currentGame.value.currentLeg,
+          setNumber: currentGame.value.currentSet,
+          startTimestamp: now,
+          totalThrows: 0,
+          playerStats: {}
+        }
+        
+        // Set end timestamp for completed leg
+        const completedLegData = {
+          ...currentLegData,
+          endTimestamp: now,
+          winnerId: winnerPlayerId,
+          // Create a deep copy of the player stats at the end of this leg
+          playerStats: currentGame.value.players.reduce((stats: Record<string, any>, player) => {
+            // Find this player in updatedPlayers to get their latest stats
+            const playerData = updatedPlayers.find(p => p.id === player.id) || player
+            
+            // Store key metrics for this leg
+            stats[player.id] = {
+              dartsThrown: playerData.totalThrows || 0,
+              totalScore: playerData.totalScore || 0,
+              turns: playerData.totalTurns || 0,
+              averagePerTurn: playerData.averagePerTurn || 0,
+              highestScore: playerData.highestTurn || 0,
+              checkoutAttempts: playerData.checkoutAttempts || 0,
+              checkoutSuccess: playerData.id === winnerPlayerId && playerData.successfulCheckouts > 0,
+              singlesHit: playerData.singlesHit || 0,
+              doublesHit: playerData.doublesHit || 0,
+              triplesHit: playerData.triplesHit || 0,
+              bullsHit: playerData.bullsHit || 0,
+              throwsOver100: playerData.throwsOver100 || 0
+            }
+            return stats
+          }, {})
+        }
+        
+        // Create a unique key for this leg in the legsData object
+        // Use set number and leg number for easy retrieval
+        const legKey = `${currentGame.value.currentSet}_${currentGame.value.currentLeg}`
+        
+        // Update legsData with this completed leg
+        // We need to merge with any existing legsData
+        const existingLegsData = currentGame.value.legsData || {}
+        updateData.legsData = {
+          ...existingLegsData,
+          [legKey]: completedLegData
+        }
+        
+        // If a set was completed, update the set history as well
+        if (setCompleted) {
+          const currentSetData = currentGame.value.currentSetData || {
+            setNumber: currentGame.value.currentSet,
+            startTimestamp: currentLegData.startTimestamp || now,
+            playerStats: {}
+          }
+          
+          // Create completed set data
+          const completedSetData = {
+            ...currentSetData,
+            endTimestamp: now,
+            winnerId: winnerPlayerId,
+            legs: Object.keys(updateData.legsData)
+              .filter(key => key.startsWith(`${currentGame.value?.currentSet || 1}_`))
+              .map(key => updateData.legsData[key]),
+            // Create set-level player stats
+            playerStats: currentGame.value.players.reduce((stats: Record<string, any>, player) => {
+              const playerData = updatedPlayers.find(p => p.id === player.id) || player
+              
+              stats[player.id] = {
+                legsWon: player.id === winnerPlayerId ? (playerData.legs || 0) : 0,
+                totalThrows: playerData.totalThrows || 0,
+                totalScore: playerData.totalScore || 0,
+                averagePerTurn: playerData.averagePerTurn || 0,
+                checkoutPercentage: playerData.checkoutPercentage || 0
+              }
+              return stats
+            }, {})
+          }
+          
+          // Create a unique key for this set
+          const setKey = `${currentGame.value.currentSet}`
+          
+          // Update setsData with this completed set
+          const existingSetsData = currentGame.value.setsData || {}
+          updateData.setsData = {
+            ...existingSetsData,
+            [setKey]: completedSetData
+          }
+          
+          // Initialize data for the next set if the game isn't over
+          if (!gameFinished) {
+            // Create new set data for the next set
+            const newSetData = {
+              setNumber: currentSet,
+              startTimestamp: now,
+              playerStats: currentGame.value.players.reduce((stats: Record<string, any>, player) => {
+                stats[player.id] = {
+                  legsWon: 0,
+                  totalThrows: 0,
+                  totalScore: 0,
+                  averagePerTurn: 0
+                }
+                return stats
+              }, {})
+            }
+            
+            updateData.currentSetData = newSetData
+          }
+        }
+        
+        // Initialize data for the next leg if the game isn't over
+        if (!gameFinished) {
+          // Create new leg data for the next leg
+          const newLegData = {
+            legNumber: currentLeg,
+            setNumber: currentSet,
+            startPlayerId: updatedPlayers[nextPlayerIndex].id,
+            startTimestamp: now,
+            totalThrows: 0,
+            playerStats: currentGame.value.players.reduce((stats: Record<string, any>, player) => {
+              stats[player.id] = {
+                dartsThrown: 0,
+                totalScore: 0,
+                turns: 0,
+                averagePerTurn: 0,
+                highestScore: 0,
+                checkoutAttempts: 0,
+                checkoutSuccess: false
+              }
+              return stats
+            }, {})
+          }
+          
+          updateData.currentLegData = newLegData
+        }
+        
+        // Update leg and set numbers
+        updateData.currentLeg = currentLeg
+        if (setCompleted) {
+          updateData.currentSet = currentSet
+        }
+      }
+      
+      // If game is finished, make sure all history is properly saved
+      if (gameFinished) {
+        updateData.status = 'finished'
+        updateData.finishedAt = serverTimestamp()
+        updateData.winner = winnerPlayerId
+        
+        // Log that we have preserved all players for analytics
+        console.log(`Game finished. Preserving data for all ${updatedPlayers.length} players for analytics`)
+      }
+
+      // Update game state
+      await updateDoc(doc(db, 'games', gameId.value), updateData)
 
       return { success: true }
     } catch (err) {
@@ -397,22 +853,36 @@ export const useFirebaseDartsGame = () => {
       isLoading.value = true
       error.value = null
       
-      const gameRef = doc(db, 'dartsGames', gameId.value)
+      const gameRef = doc(db, 'games', gameId.value)
       
-      if (isHost.value) {
-        // If host leaves, end the game
+      // Check if game is already finished - don't modify player data for finished games
+      if (currentGame.value.status === 'finished') {
+        // Just unsubscribe without modifying the game data
+        console.log('Game already finished - leaving without modifying player data')
+      } else if (isHost.value) {
+        // If host leaves, end the game but preserve player data
         await updateDoc(gameRef, {
           status: 'finished',
-          finishedAt: serverTimestamp()
+          finishedAt: serverTimestamp(),
+          abandonedBy: authStore.currentUser?.id // Mark that the host abandoned the game
         })
       } else if (isCurrentUserPlaying.value) {
-        // Remove player from the game
-        const updatedPlayers = currentGame.value.players
-          .filter(p => p.id !== authStore.currentUser?.id)
+        // Don't remove player completely - mark them as left instead
+        const updatedPlayers = currentGame.value.players.map(p => {
+          if (p.id === authStore.currentUser?.id) {
+            // Mark this player as having left the game
+            return { ...p, leftGame: true, leftAt: new Date().toISOString() }
+          }
+          return p
+        })
         
-        await updateDoc(gameRef, { players: updatedPlayers })
+        // Also track who abandoned the game
+        await updateDoc(gameRef, { 
+          players: updatedPlayers,
+          abandonedBy: authStore.currentUser?.id
+        })
       } else if (isSpectating.value) {
-        // Remove from spectators
+        // Remove from spectators - this is fine since spectators don't affect game history
         const updatedSpectators = currentGame.value.spectators
           .filter(id => id !== authStore.currentUser?.id)
         
@@ -447,7 +917,7 @@ export const useFirebaseDartsGame = () => {
     gameId.value = id
     
     // Listen for game document updates
-    const gameRef = doc(db, 'dartsGames', id)
+    const gameRef = doc(db, 'games', id)
     unsubscribeGame.value = onSnapshot(gameRef, (snapshot) => {
       if (snapshot.exists()) {
         currentGame.value = { 
@@ -468,7 +938,7 @@ export const useFirebaseDartsGame = () => {
     })
     
     // Listen for turn history
-    const turnsCollection = collection(db, 'dartsGames', id, 'turns')
+    const turnsCollection = collection(db, 'games', id, 'turns')
     const turnsQuery = query(turnsCollection)
     unsubscribeTurns.value = onSnapshot(turnsQuery, (snapshot) => {
       const turnsList: Turn[] = []
@@ -578,33 +1048,91 @@ export const useFirebaseDartsGame = () => {
   
   const abandonGame = async (gameId: string, userId: string) => {
     try {
-      const response = await $fetch<AbandonGameResponse>(`/api/games/${gameId}/abandon`, {
-        method: 'POST',
-        body: { userId }
-      })
+      if (!gameId || !userId) {
+        throw new Error('Game ID and User ID are required')
+      }
+
+      // Get the current game to determine winner
+      const gameDoc = await getDoc(doc(db, 'games', gameId))
+      if (!gameDoc.exists()) {
+        throw new Error('Game not found')
+      }
+
+      const gameData = gameDoc.data() as FirebaseGame
       
-      if (response.success) {
-        // If this is the current game, update its status locally
-        if (currentGame.value && currentGame.value.id === gameId) {
-          currentGame.value.status = 'finished'
-          currentGame.value.abandonedBy = userId
-          currentGame.value.winner = response.winner || undefined
+      // Determine the winner (other player if it's a 2-player game)
+      let winner: string | null = null
+      if (gameData.players.length === 2) {
+        const otherPlayer = gameData.players.find(p => p.id !== userId)
+        winner = otherPlayer?.id || null
+      }
+
+      // Prepare game update data
+      const gameUpdate: any = {
+        status: 'finished',
+        abandonedBy: userId,
+        winner,
+        finishedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }
+      
+      // If there's a winner, update their stats to reflect the win
+      if (winner) {
+        const updatedPlayers = [...gameData.players]
+        const winnerIndex = updatedPlayers.findIndex(p => p.id === winner)
+        
+        if (winnerIndex !== -1) {
+          // Give the winner full sets to reflect the win
+          updatedPlayers[winnerIndex] = {
+            ...updatedPlayers[winnerIndex],
+            sets: gameData.setsToWin
+          }
           
-          if (response.winner) {
-            // Update the player stats for display
-            const winningPlayer = currentGame.value.players.find(p => p.id === response.winner)
-            if (winningPlayer) {
-              winningPlayer.sets = currentGame.value.setsToWin
-            }
+          // Make sure all player stats are properly preserved for analytics
+          updatedPlayers.forEach(player => {
+            // Ensure these fields exist and have proper values for analytics
+            player.checkoutAttempts = player.checkoutAttempts || 0
+            player.successfulCheckouts = player.successfulCheckouts || 0
+            player.highestCheckout = player.highestCheckout || 0
+            player.checkoutPercentage = player.successfulCheckouts > 0 ? 
+              ((player.successfulCheckouts / player.checkoutAttempts) * 100) : 0
+            
+            // Keep other analytics-related fields
+            player.totalThrows = player.totalThrows || 0
+            player.totalScore = player.totalScore || 0
+            player.totalTurns = player.totalTurns || 0
+            player.averagePerTurn = player.totalScore > 0 && player.totalTurns > 0 ? 
+              (player.totalScore / player.totalTurns) : 0
+            player.highestTurn = player.highestTurn || 0
+          })
+          
+          gameUpdate.players = updatedPlayers
+        }
+      }
+      
+      // Update the game with abandonment info
+      await updateDoc(doc(db, 'games', gameId), gameUpdate)
+
+      // If this is the current game, update its status locally
+      if (currentGame.value && currentGame.value.id === gameId) {
+        currentGame.value.status = 'finished'
+        currentGame.value.abandonedBy = userId
+        currentGame.value.winner = winner || undefined
+        
+        if (winner) {
+          // Update the player stats for display
+          const winningPlayer = currentGame.value.players.find(p => p.id === winner)
+          if (winningPlayer) {
+            winningPlayer.sets = currentGame.value.setsToWin
           }
         }
-        
-        return {
-          success: true,
-          gameId: response.gameId
-        }
-      } else {
-        throw new Error('Failed to abandon game')
+      }
+
+      return {
+        success: true,
+        gameId,
+        abandonedBy: userId,
+        winner
       }
     } catch (error) {
       console.error('Error abandoning game:', error)

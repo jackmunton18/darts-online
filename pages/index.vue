@@ -81,7 +81,7 @@
                 <!-- TODO Translate -->
                 <h3 class="text-lg font-semibold mb-4">Recent Finished Games</h3>
 
-                <div v-if="isLoading" class="flex justify-center py-6">
+                <div v-if="isLoadingFinished" class="flex justify-center py-6">
                     <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
                 
@@ -179,6 +179,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useNotificationStore } from '~/stores/notification'
 import { useAuthStore } from '~/stores/auth'
 import { formatDistanceToNow } from 'date-fns'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 
 // Get the router, route, and notification store
 const router = useRouter()
@@ -198,7 +199,9 @@ const errorMessage = computed(() => {
 })
 
 const isLoading = ref(true)
+const isLoadingFinished = ref(true)
 const apiGames = ref<any[]>([])
+const finishedApiGames = ref<any[]>([])
 
 // Combine local storage games and API games
 const activeGames = computed(() => {
@@ -213,19 +216,19 @@ const activeGames = computed(() => {
 })
 
 const finishedGames = computed(() => {
-    // Get finished games from API
-    return apiGames.value.map(game => ({
+    // Get finished games directly from finishedApiGames
+    return finishedApiGames.value.map(game => ({
         gameId: game.id,
         gameCode: game.gameCode,
         status: game.status,
-        role: game.role,
+        role: game.role || 'player', // Default to player if role is not defined
         timestamp: new Date(game.createdAt).getTime(),
         finishedAt: game.finishedAt ? new Date(game.finishedAt).getTime() : null,
         players: game.players || [],
         hostId: game.hostId,
         winner: game.winner,
         abandonedBy: game.abandonedBy
-    })).filter(session => session.status === 'finished')
+    }))
       .sort((a, b) => (b.finishedAt || b.timestamp) - (a.finishedAt || a.timestamp)) // Sort by finish time or creation time
       .slice(0, 10) // Show only the 10 most recent finished games
 })
@@ -383,28 +386,40 @@ const fetchActiveGames = async () => {
         
         if (authStore.isAuthenticated) {
             try {
-                const token = await authStore.getIdToken()
-                const response = await fetch('/api/games/active', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-                
-                if (response.ok) {
-                    const fetchedApiGames = await response.json()
-                    // console.log('Fetched API games:', fetchedApiGames)
+                // Get current user's active games directly from Firestore
+                const { $firestore } = useNuxtApp()
+                if ($firestore && authStore.currentUser) {
+                    const userId = authStore.currentUser.id
+                    
+                    // Query for active games (we'll filter client-side for user participation)
+                    const activeGamesQuery = query(
+                        collection($firestore, 'games'),
+                        where('status', 'in', ['waiting', 'playing'])
+                    )
+                    
+                    const gamesSnapshot = await getDocs(activeGamesQuery)
+                    const allActiveGames = gamesSnapshot.docs.map((doc: any) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                        createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+                        finishedAt: doc.data().finishedAt?.toDate?.() || null
+                    }))
+                    
+                    // Filter games where user is a player or spectator
+                    const fetchedApiGames = allActiveGames.filter((game: any) => {
+                        const isPlayer = game.players?.some((player: any) => player.id === userId)
+                        const isSpectator = game.spectators?.includes(userId)
+                        const isHost = game.hostId === userId
+                        return isPlayer || isSpectator || isHost
+                    })
                     
                     // Set the apiGames ref
                     apiGames.value = fetchedApiGames || []
                 } else {
-                    const errorText = await response.text()
-                    console.error('API response error:', response.status, errorText)
-                    
-                    // Reset to empty array if API fails
                     apiGames.value = []
                 }
             } catch (apiError) {
-                console.error('API fetch error:', apiError)
+                console.error('Firestore fetch error:', apiError)
                 apiGames.value = []
             }
         } else {
@@ -418,8 +433,64 @@ const fetchActiveGames = async () => {
     }
 }
 
+// Function to fetch finished games
+const fetchFinishedGames = async () => {
+    try {
+        isLoadingFinished.value = true
+        
+        const authStore = useAuthStore()
+        
+        if (authStore.isAuthenticated) {
+            try {
+                // Get current user's finished games directly from Firestore
+                const { $firestore } = useNuxtApp()
+                if ($firestore && authStore.currentUser) {
+                    const userId = authStore.currentUser.id
+                    
+                    // Query for finished games, ordered by finishedAt
+                    const finishedGamesQuery = query(
+                        collection($firestore, 'games'),
+                        where('status', '==', 'finished'),
+                        // We'll filter for the current user's games client side
+                    )
+                    
+                    const gamesSnapshot = await getDocs(finishedGamesQuery)
+                    const allFinishedGames = gamesSnapshot.docs.map((doc: any) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                        createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+                        finishedAt: doc.data().finishedAt?.toDate?.() || null
+                    }))
+                    
+                    // Filter games where user is a player or host
+                    const fetchedFinishedGames = allFinishedGames.filter((game: any) => {
+                        const isPlayer = game.players?.some((player: any) => player.id === userId)
+                        const isHost = game.hostId === userId
+                        return isPlayer || isHost
+                    })
+                    
+                    // Set the finishedApiGames ref
+                    finishedApiGames.value = fetchedFinishedGames || []
+                } else {
+                    finishedApiGames.value = []
+                }
+            } catch (apiError) {
+                console.error('Firestore fetch error:', apiError)
+                finishedApiGames.value = []
+            }
+        } else {
+            finishedApiGames.value = []
+        }
+    } catch (error) {
+        console.error('Error fetching finished games:', error)
+    } finally {
+        isLoadingFinished.value = false
+    }
+}
+
 // Load active games on mount
 onMounted(() => {
     fetchActiveGames()
+    fetchFinishedGames()
 })
 </script>

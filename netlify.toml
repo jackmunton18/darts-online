@@ -1,35 +1,14 @@
 # filepath: /Users/jackmunton/source/darts/netlify.toml
 [build]
-  command = "npm install && npm run build && bash scripts/post-build.sh"
-  publish = "dist"
+  command = "npm install && npm run generate"
+  publish = ".output/public"
   
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--production=false"
 
-[functions]
-  node_bundler = "esbuild"
-  external_node_modules = ["firebase-admin"]
-
-# Netlify Functions for server API routes - these handle SSR
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/index/:splat"
-  status = 200
-
-# Handle favicon and static assets first
-[[redirects]]
-  from = "/favicon.ico"
-  to = "/favicon.ico"
-  status = 200
-
-[[redirects]]
-  from = "/_nuxt/*"
-  to = "/_nuxt/:splat"
-  status = 200
-
-# Handle SPA routing for client-side routes - this must be last
+# Handle client-side routing for SPA
 [[redirects]]
   from = "/*"
-  to = "/.netlify/functions/index"
+  to = "/index.html"
   status = 200

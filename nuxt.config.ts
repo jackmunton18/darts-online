@@ -1,15 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   runtimeConfig: {
-    // Private keys (only available on the server-side)
-    firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
-    firebasePrivateKey: process.env.FIREBASE_PRIVATE_KEY,
-    firebaseClientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    firebaseClientId: process.env.FIREBASE_CLIENT_ID,
-    firebaseAuthUri: process.env.FIREBASE_AUTH_URI,
-    firebaseTokenUri: process.env.FIREBASE_TOKEN_URI,
-    
-    // Public keys (exposed to the client-side)
+    // Public keys (exposed to the client-side) - all Firebase config becomes public in static mode
     public: {
       firebaseConfig: {
         apiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY,
@@ -32,45 +24,28 @@ export default defineNuxtConfig({
     },
   },
   
-  // Add hooks for prerender
-  hooks: {
-    'nitro:config': (nitroConfig) => {
-      // Set environment variable for prerender
-      if (nitroConfig.dev !== true && (nitroConfig.prerender?.routes || []).length > 0) {
-        process.env.prerender = 'true'
-      }
+  // Static generation configuration
+  nitro: {
+    preset: 'static',
+    prerender: {
+      crawlLinks: false,
+      routes: ['/']
     }
   },
   
-  // Configure nitro for Netlify deployment
-  nitro: {
-    preset: 'netlify-legacy',
-    experimental: {
-      wasm: false
-    },
-    esbuild: {
-      options: {
-        target: 'node18'
-      }
-    },
-    output: {
-      serverDir: '.netlify/functions'
-    },
-    prerender: {
-      // Exclude dynamic routes from prerendering
-      ignore: [
-        '/game/**',
-        '/api/**'
-      ]
-    }
+  ssr: false, // Enable SPA mode
+  
+  // Generate fallback for client-side routing
+  generate: {
+    routes: ['/']
   },
-
+  
   // Optimize client bundle with code splitting
   vite: {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
+          manualChunks: (id: string) => {
             // Split vendor libraries
             if (id.includes('d3')) {
               return 'd3'
@@ -88,6 +63,7 @@ export default defineNuxtConfig({
   },
 
   modules: ["@pinia/nuxt", '@samk-dev/nuxt-vcalendar', 'vue3-carousel-nuxt'],
+  
   app: {
     head: {
       title: 'Darts',
