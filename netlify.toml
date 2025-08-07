@@ -1,11 +1,15 @@
 # filepath: /Users/jackmunton/source/darts/netlify.toml
 [build]
   command = "npm install && npm run build"
-  publish = ".output/public"
+  publish = "dist"
   
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--production=false"
+
+[functions]
+  directory = ".netlify/functions-internal"
+  node_bundler = "esbuild"
 
 # Netlify Functions for server API routes - these handle SSR
 [[redirects]]
@@ -18,6 +22,3 @@
   from = "/*"
   to = "/.netlify/functions/server"
   status = 200
-
-[functions]
-  node_bundler = "esbuild"
