@@ -44,7 +44,7 @@ export default defineNuxtConfig({
   
   // Configure nitro for Netlify deployment
   nitro: {
-    preset: 'netlify',
+    preset: 'netlify-legacy',
     experimental: {
       wasm: false
     },

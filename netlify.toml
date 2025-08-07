@@ -17,7 +17,18 @@
   to = "/.netlify/functions/server/:splat"
   status = 200
 
-# Handle SPA routing for client-side routes
+# Handle favicon and static assets first
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/favicon.ico"
+  status = 200
+
+[[redirects]]
+  from = "/_nuxt/*"
+  to = "/_nuxt/:splat"
+  status = 200
+
+# Handle SPA routing for client-side routes - this must be last
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/server"
