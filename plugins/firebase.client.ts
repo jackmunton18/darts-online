@@ -7,7 +7,15 @@ import { getMessaging, onMessage } from 'firebase/messaging'
 
 
 export default defineNuxtPlugin(nuxtApp => {
-    const config : any = useRuntimeConfig().public.firebaseConfig
+    const config = useRuntimeConfig().public.firebaseConfig
+    
+    // Validate required configuration
+    if (!config.apiKey || !config.projectId) {
+        console.error('Missing required Firebase client configuration:')
+        console.error('- API Key:', !!config.apiKey)
+        console.error('- Project ID:', !!config.projectId)
+        throw new Error('Missing required Firebase client environment variables')
+    }
     
     const firebaseConfig = {
         apiKey: config.apiKey,
@@ -23,10 +31,10 @@ export default defineNuxtPlugin(nuxtApp => {
     let app;
     if (getApps().length === 0) {
         app = initializeApp(firebaseConfig);
-        console.log('Firebase initialized on client-side');
+        console.log('✅ Firebase initialized on client-side for project:', config.projectId);
     } else {
         app = getApps()[0];
-        console.log('Using existing Firebase instance on client-side');
+        console.log('✅ Using existing Firebase instance on client-side');
     }
 
     const analytics = getAnalytics(app)

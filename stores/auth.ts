@@ -8,6 +8,7 @@ import {
   type User as FirebaseUser,
   type Auth
 } from 'firebase/auth'
+import { useNotificationStore } from '~/stores/notification'
 
 export interface User {
   id: string
@@ -106,7 +107,6 @@ export const useAuthStore = defineStore('auth', () => {
           console.error('Failed to create user document in Firestore:', userCreateErr)
           
           // Add a toast notification to make this visible to the user
-          const { useNotificationStore } = await import('~/stores/notification')
           const toast = useNotificationStore()
           toast.addMessage({
             type: 'error',

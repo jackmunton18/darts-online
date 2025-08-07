@@ -45,15 +45,34 @@ export default defineNuxtConfig({
   // Configure nitro for Netlify deployment
   nitro: {
     preset: 'netlify',
-    experimental: {
-      wasm: true
-    },
     prerender: {
       // Exclude dynamic routes from prerendering
       ignore: [
         '/game/**',
         '/api/**'
       ]
+    }
+  },
+
+  // Optimize client bundle with code splitting
+  vite: {
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            // Split vendor libraries
+            if (id.includes('d3')) {
+              return 'd3'
+            }
+            if (id.includes('firebase')) {
+              return 'firebase'
+            }
+            if (id.includes('node_modules')) {
+              return 'vendor'
+            }
+          }
+        }
+      }
     }
   },
 
