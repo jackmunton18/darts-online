@@ -14,7 +14,7 @@
 # Netlify Functions for server API routes - these handle SSR
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/server/:splat"
+  to = "/.netlify/functions/index/:splat"
   status = 200
 
 # Handle favicon and static assets first
@@ -31,5 +31,5 @@
 # Handle SPA routing for client-side routes - this must be last
 [[redirects]]
   from = "/*"
-  to = "/.netlify/functions/server"
+  to = "/.netlify/functions/index"
   status = 200
