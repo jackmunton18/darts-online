@@ -13,12 +13,35 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Game Session Management -->
-            <DartsGameSession />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <button 
+                @click="navigateToVersus"
+                class="w-full bg-blue-600 text-white py-12 px-4 rounded-md hover:bg-blue-700 text-base font-medium touch-manipulation flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                style="min-height: 52px;"
+            >
+                Versus Mode
+            </button>
+            <button 
+                @click="navigateToVersus"
+                class="w-full bg-blue-600 text-white py-12 px-4 rounded-md hover:bg-blue-700 text-base font-medium touch-manipulation flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 opacity-50 pointer-events-none"
+                style="min-height: 52px;"
+            >
+                Tournament Mode (Coming Soon)
+            </button>
+            <!-- Quick Actions -->
+            <!-- <div class="bg-white rounded-lg shadow-md p-4 md:p-6">
+                <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
+                
+                <div class="space-y-4">
+                    
+                    <div class="text-center text-sm text-gray-500">
+                        Start a new match or join with a game code
+                    </div>
+                </div>
+            </div> -->
 
             <!-- Active Games List -->
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-lg shadow-md p-4 md:p-6 max-h-[600px] home-panels overflow-auto">
                 <!-- TODO Translate -->
                 <h3 class="text-lg font-semibold mb-4">My Active Games</h3>
 
@@ -36,16 +59,16 @@
                     <div 
                         v-for="game in activeGames" 
                         :key="game.gameId" 
-                        class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer"
+                        class="border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition cursor-pointer touch-manipulation"
                         @click="navigateToGame(game.gameId)"
                     >
-                        <div class="flex justify-between items-center">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
                             <div>
-                                <div class="font-medium">
+                                <div class="font-medium text-base">
                                     <!-- TODO Translate -->
                                     Game Code: <span class="text-blue-600">{{ game.gameCode }}</span>
                                 </div>
-                                <div class="text-sm text-gray-500">
+                                <div class="text-sm text-gray-500 mt-1">
                                     <!-- TODO Translate -->
                                     Role: {{ formatRole(game.role) }}
                                 </div>
@@ -77,7 +100,7 @@
             </div>
 
             <!-- Finished Games List -->
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-lg shadow-md p-4 md:p-6 max-h-[600px] home-panels overflow-auto">
                 <!-- TODO Translate -->
                 <h3 class="text-lg font-semibold mb-4">Recent Finished Games</h3>
 
@@ -95,12 +118,12 @@
                     <div 
                         v-for="game in finishedGames" 
                         :key="game.gameId" 
-                        class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer"
+                        class="border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition cursor-pointer touch-manipulation"
                         @click="navigateToGameAnalytics(game.gameId)"
                     >
-                        <div class="flex justify-between items-start">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start">
                             <div class="flex-1">
-                                <div class="flex justify-between items-center mb-2">
+                                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2">
                                     <div class="font-medium">
                                         <!-- TODO Translate -->
                                         Game Code: <span class="text-gray-600">{{ game.gameCode }}</span>
@@ -140,13 +163,6 @@
                                         <span class="font-medium">{{ getFinalScore(game) }}</span>
                                     </div>
                                     
-                                    <div v-if="game.abandonedBy" class="flex justify-between">
-                                        <span class="text-gray-500">
-                                            <!-- TODO Translate -->
-                                            Abandoned by:
-                                        </span>
-                                        <span class="text-red-600 font-medium">{{ getAbandonedByName(game) }}</span>
-                                    </div>
                                     
                                     <div class="flex justify-between">
                                         <span class="text-gray-500">
@@ -188,14 +204,27 @@ const toast = useNotificationStore()
 
 // Check if there was an error redirected from middleware
 const error = route.query.error
-const redirectPath = route.query.path
+const redirectPath = route.query.path as string || ''
+
+// State for handling redirects
+const isRedirecting = ref(false)
+const redirectError = ref('')
 
 // Generate appropriate error message
 const errorMessage = computed(() => {
-    if (error === 'direct-access' && redirectPath) {
-        return `The page ${redirectPath} cannot be accessed directly in static mode.`;
+    if (isRedirecting.value) {
+        return 'Attempting to reconnect to your game session...'
     }
-    return 'An error occurred while accessing the games.';
+    
+    if (redirectError.value) {
+        return redirectError.value
+    }
+    
+    if (error === 'direct-access' && redirectPath) {
+        return `The page ${redirectPath} cannot be accessed directly in static mode. We'll try to reconnect you.`
+    }
+    
+    return 'An error occurred while accessing the games.'
 })
 
 const isLoading = ref(true)
@@ -244,6 +273,11 @@ const navigateToGame = async (gameId: string) => {
             message: 'Failed to navigate to game'
         })
     }
+}
+
+// Navigate to versus page
+const navigateToVersus = () => {
+    router.push('/versus')
 }
 
 // Navigate to game analytics
@@ -488,8 +522,60 @@ const fetchFinishedGames = async () => {
     }
 }
 
+// Handle redirected game URLs
+const handleGameRedirect = async (path: string) => {
+    // Extract game ID from path (format: /game/ID or /game/ID/analytics)
+    const gameIdMatch = path.match(/\/game\/([^\/]+)/)
+    if (!gameIdMatch || !gameIdMatch[1]) return
+    
+    const gameId = gameIdMatch[1]
+    isRedirecting.value = true
+    
+    try {
+        // Import the game persistence composable
+        const { loadActiveSessions } = useGamePersistence()
+        loadActiveSessions()
+        
+        // Use the Firebase Darts Game composable to reconnect
+        const dartsGame = useFirebaseDartsGame()
+        
+        if (typeof dartsGame.subscribeToGame !== 'function') {
+            throw new Error('Game service not properly initialized')
+        }
+        
+        // Subscribe to the game
+        await dartsGame.subscribeToGame(gameId)
+        
+        // Use small delay to ensure subscriptions are active
+        setTimeout(() => {
+            // If analytics path, go to analytics
+            if (path.includes('/analytics')) {
+                router.push(`/game/${gameId}/analytics`)
+            } else {
+                router.push(`/game/${gameId}`)
+            }
+        }, 500)
+    } catch (err) {
+        console.error('Failed to reconnect to game:', err)
+        redirectError.value = `Failed to reconnect to game session: ${err instanceof Error ? err.message : 'Unknown error'}`
+    } finally {
+        isRedirecting.value = false
+    }
+}
+
 // Load active games on mount
-onMounted(() => {
+onMounted(async () => {
+    // Handle direct game URL redirect
+    if (error === 'direct-access' && redirectPath) {
+        handleGameRedirect(redirectPath)
+    }
+    
+    // Handle reconnect requests from the 404 page
+    if (route.query.reconnect === 'true') {
+        fetchActiveGames()
+    }
+    
+    // Load games
     fetchActiveGames()
     fetchFinishedGames()
 })

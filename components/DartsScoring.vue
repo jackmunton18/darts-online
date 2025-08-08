@@ -4,28 +4,30 @@
       <h3 class="text-lg font-semibold mb-4">Score Input</h3>
       
       <!-- Input Method Toggle -->
-      <div class="flex space-x-4 mb-4">
+      <div class="flex w-full space-x-2 mb-4">
         <button
           @click="inputMethod = 'total'"
           :class="[
-            'px-4 py-2 rounded-md font-medium',
+            'flex-1 px-3 py-3 rounded-md font-medium touch-manipulation',
             inputMethod === 'total'
               ? 'bg-blue-600 text-white'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           ]"
+          style="min-height: 48px;"
         >
           Total Score
         </button>
         <button
           @click="inputMethod = 'individual'"
           :class="[
-            'px-4 py-2 rounded-md font-medium',
+            'flex-1 px-3 py-3 rounded-md font-medium touch-manipulation',
             inputMethod === 'individual'
               ? 'bg-blue-600 text-white'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           ]"
+          style="min-height: 48px;"
         >
-          Individual Throws
+          Individual
         </button>
       </div>
 
@@ -40,14 +42,16 @@
             type="number"
             min="0"
             :max="remainingScore"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-3 text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style="min-height: 48px;"
             placeholder="Enter total score"
           />
         </div>
         <button
           @click="submitTotalScore"
           :disabled="!isValidTotalScore"
-          class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          class="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-lg touch-manipulation"
+          style="min-height: 54px;"
         >
           Submit Score
         </button>
@@ -82,37 +86,40 @@
         <!-- Multiplier Toggle Buttons -->
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-2">Multiplier</label>
-          <div class="flex space-x-2">
+          <div class="flex w-full space-x-2">
             <button
               @click="selectedMultiplier = 'single'"
               :class="[
-                'px-4 py-2 rounded-md font-medium',
+                'flex-1 px-2 sm:px-4 py-3 rounded-md font-medium touch-manipulation text-base',
                 selectedMultiplier === 'single'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               ]"
+              style="min-height: 48px;"
             >
               Single
             </button>
             <button
               @click="selectedMultiplier = 'double'"
               :class="[
-                'px-4 py-2 rounded-md font-medium',
+                'flex-1 px-2 sm:px-4 py-3 rounded-md font-medium touch-manipulation text-base',
                 selectedMultiplier === 'double'
                   ? 'bg-green-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               ]"
+              style="min-height: 48px;"
             >
               Double
             </button>
             <button
               @click="selectedMultiplier = 'triple'"
               :class="[
-                'px-4 py-2 rounded-md font-medium',
+                'flex-1 px-2 sm:px-4 py-3 rounded-md font-medium touch-manipulation text-base',
                 selectedMultiplier === 'triple'
                   ? 'bg-yellow-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               ]"
+              style="min-height: 48px;"
             >
               Triple
             </button>
@@ -122,14 +129,15 @@
         <!-- Number Selection -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Number</label>
-          <div class="grid grid-cols-7 gap-2">
+          <div class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
             <!-- Numbers 0-20 -->
             <button
               v-for="num in 21"
               :key="num - 1"
               @click="addThrow(num - 1, selectedMultiplier)"
               :disabled="!canAddThrow(num - 1, selectedMultiplier) || currentThrows.length >= 3"
-              class="p-3 border border-gray-300 rounded-lg text-center hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed font-medium"
+              class="p-2 md:p-3 border border-gray-300 rounded-lg text-center hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed font-medium text-lg touch-manipulation"
+              style="min-height: 48px;"
             >
               {{ num - 1 }}
             </button>
@@ -138,18 +146,20 @@
             <button
               @click="addThrow(25, 'single')"
               :disabled="!canAddThrow(25, 'single') || currentThrows.length >= 3"
-              class="p-3 border border-gray-300 rounded-lg text-center hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed font-medium"
+              class="p-2 md:p-3 border border-gray-300 rounded-lg text-center hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed font-medium text-sm md:text-base touch-manipulation"
+              style="min-height: 48px;"
             >
-              Outer Bull
+              25
             </button>
             
             <!-- Double Bull (25 double) -->
             <button
               @click="addThrow(25, 'double')"
               :disabled="!canAddThrow(25, 'double') || currentThrows.length >= 3"
-              class="p-3 border border-gray-300 rounded-lg text-center hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed font-medium"
+              class="p-2 md:p-3 border border-gray-300 rounded-lg text-center hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed font-medium text-sm md:text-base touch-manipulation"
+              style="min-height: 48px;"
             >
-              Bullseye
+              Bull
             </button>
           </div>
         </div>
@@ -163,7 +173,8 @@
         <button
           @click="submitIndividualThrows"
           :disabled="currentThrows.length === 0"
-          class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          class="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-lg touch-manipulation"
+          style="min-height: 54px;"
         >
           Submit Throws ({{ totalScore }})
         </button>

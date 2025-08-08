@@ -68,6 +68,7 @@ export interface DartThrow {
   multiplier: 'single' | 'double' | 'triple'
   score: number
   timestamp: string
+  isBust?: boolean  // Optional flag to indicate if this dart was part of a bust turn
 }
 
 export interface LegData {

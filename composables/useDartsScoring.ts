@@ -70,7 +70,26 @@ export const useDartsScoring = () => {
   }
 
   const isValidScore = (score: number, remainingScore: number) => {
-    return score >= 0 && score <= remainingScore && score !== 1
+    // Allow any score to be submitted - we'll handle bust logic in the submission
+    return score >= 0
+  }
+
+  const isBustScore = (score: number, remainingScore: number, throws: DartThrow[]) => {
+    const newScore = remainingScore - score
+    
+    // Bust if score goes below 0
+    if (newScore < 0) return true
+    
+    // Bust if score would be exactly 1 (impossible to finish)
+    if (newScore === 1) return true
+    
+    // Bust if score is exactly 0 but last dart isn't a double
+    if (newScore === 0 && throws.length > 0) {
+      const lastDart = throws[throws.length - 1]
+      if (lastDart.multiplier !== 'double') return true
+    }
+    
+    return false
   }
 
   const getBestScoringOptions = (remainingScore: number) => {
@@ -302,6 +321,7 @@ export const useDartsScoring = () => {
     getScoringOptions,
     calculateTotalScore,
     isValidScore,
+    isBustScore,
     getBestScoringOptions,
     getCheckoutSuggestions
   }

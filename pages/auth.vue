@@ -184,6 +184,7 @@ definePageMeta({
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const isSignup = ref(false)
 const error = ref('')
@@ -255,7 +256,20 @@ const handleSubmit = async () => {
       )
       
       if (success) {
-        router.push('/')
+        // Check if there's a redirect parameter
+        const redirect = route.query.redirect as string
+        if (redirect && redirect.startsWith('/game/')) {
+          // Extract game ID for direct navigation
+          const gameIdMatch = redirect.match(/\/game\/([^\/]+)/)
+          if (gameIdMatch && gameIdMatch[1]) {
+            // Try to navigate to the game
+            router.push(redirect)
+          } else {
+            router.push('/')
+          }
+        } else {
+          router.push('/')
+        }
       } else {
         // Handle Firebase-specific error messages
         error.value = getFirebaseErrorMessage(authError || 'Login failed')

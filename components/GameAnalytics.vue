@@ -27,13 +27,13 @@
     </div>
     
     <!-- Tab Navigation -->
-    <div class="border-b border-gray-200 mb-6">
-      <nav class="-mb-px flex space-x-4 overflow-x-auto pb-1">
+    <div class="border-b border-gray-200 mb-4 md:mb-6">
+      <nav class="-mb-px flex space-x-2 sm:space-x-4 overflow-x-auto pb-1">
         <!-- Game overview tab -->
         <button
           @click="activeTab = 'game'"
           :class="[
-            'py-2 px-4 border-b-2 font-medium text-sm whitespace-nowrap',
+            'py-2 px-3 sm:px-4 border-b-2 font-medium text-sm whitespace-nowrap touch-manipulation',
             activeTab === 'game'
               ? 'border-blue-500 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -308,26 +308,26 @@
             <!-- Additional checkout info -->
             <div v-if="props.gameHistory && props.gameHistory.length" class="bg-white p-4 rounded-lg shadow-sm">
               <h5 class="font-medium mb-3 text-gray-700">Recent Checkout Attempts</h5>
-              <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+              <div class="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                <table class="min-w-full text-sm">
                   <thead>
                     <tr class="bg-gray-50">
-                      <th class="px-3 py-2 text-left">Turn</th>
-                      <th class="px-3 py-2 text-left">Score</th>
-                      <th class="px-3 py-2 text-left">Darts</th>
-                      <th class="px-3 py-2 text-left">Result</th>
+                      <th class="px-2 sm:px-3 py-2 text-left">Turn</th>
+                      <th class="px-2 sm:px-3 py-2 text-left">Score</th>
+                      <th class="px-2 sm:px-3 py-2 text-left">Darts</th>
+                      <th class="px-2 sm:px-3 py-2 text-left">Result</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr v-for="(turn, index) in getPlayerCheckoutAttempts(selectedPlayer?.id)" :key="index" class="border-b">
-                      <td class="px-3 py-2">{{ turn.turnNumber || index + 1 }}</td>
-                      <td class="px-3 py-2">{{ turn.score }}</td>
-                      <td class="px-3 py-2">
+                      <td class="px-2 sm:px-3 py-2">{{ turn.turnNumber || index + 1 }}</td>
+                      <td class="px-2 sm:px-3 py-2">{{ turn.score }}</td>
+                      <td class="px-2 sm:px-3 py-2 whitespace-nowrap">
                         <span v-for="(dart, dIndex) in turn.throws" :key="dIndex" class="mr-1">
                           {{ formatDart(dart) }}
                         </span>
                       </td>
-                      <td class="px-3 py-2">
+                      <td class="px-2 sm:px-3 py-2">
                         <span v-if="turn.remainingScore === 0" class="text-green-600 font-medium">Success</span>
                         <span v-else class="text-red-600 font-medium">Failed</span>
                       </td>
@@ -589,35 +589,35 @@
                     <!-- TODO Translate -->
                     Throw History
                   </h5>
-                  <div class="overflow-x-auto">
-                    <table class="w-full text-xs">
+                  <div class="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <table class="min-w-full text-xs">
                       <thead>
                         <tr class="bg-gray-100">
                           <!-- TODO Translate -->
-                          <th class="py-2 px-3 text-left">Turn</th>
-                          <th class="py-2 px-3 text-left">Player</th>
-                          <th class="py-2 px-3 text-left">Darts</th>
-                          <th class="py-2 px-3 text-right">Score</th>
-                          <th class="py-2 px-3 text-right">Remaining</th>
-                          <th class="py-2 px-3 text-right">Time</th>
+                          <th class="py-2 px-1 sm:px-3 text-left">Turn</th>
+                          <th class="py-2 px-1 sm:px-3 text-left">Player</th>
+                          <th class="py-2 px-1 sm:px-3 text-left">Darts</th>
+                          <th class="py-2 px-1 sm:px-3 text-right">Score</th>
+                          <th class="py-2 px-1 sm:px-3 text-right">Left</th>
+                          <th class="hidden sm:table-cell py-2 px-1 sm:px-3 text-right">Time</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr v-for="(turn, index) in leg.data.throws" :key="index" 
                             class="border-b border-gray-100" 
                             :class="{'bg-green-50': turn.remainingScore === 0}">
-                          <td class="py-2 px-3">{{ turn.turnNumber }}</td>
-                          <td class="py-2 px-3">{{ getPlayerNameById(turn.playerId) }}</td>
-                          <td class="py-2 px-3">
+                          <td class="py-2 px-1 sm:px-3">{{ turn.turnNumber }}</td>
+                          <td class="py-2 px-1 sm:px-3 whitespace-nowrap">{{ getPlayerNameById(turn.playerId).split(' ')[0] }}</td>
+                          <td class="py-2 px-1 sm:px-3 whitespace-nowrap">
                             <span v-for="(dart, dIndex) in turn.dartsThrown" :key="dIndex" class="mr-1">
                               {{ dart.multiplier === 'single' ? '' : 
                                  dart.multiplier === 'double' ? 'D' : 
                                  dart.multiplier === 'triple' ? 'T' : '' }}{{ dart.value }}
                             </span>
                           </td>
-                          <td class="py-2 px-3 text-right">{{ turn.score }}</td>
-                          <td class="py-2 px-3 text-right">{{ turn.remainingScore }}</td>
-                          <td class="py-2 px-3 text-right">{{ formatTime(turn.timestamp) }}</td>
+                          <td class="py-2 px-1 sm:px-3 text-right">{{ turn.score }}</td>
+                          <td class="py-2 px-1 sm:px-3 text-right">{{ turn.remainingScore }}</td>
+                          <td class="hidden sm:table-cell py-2 px-1 sm:px-3 text-right">{{ formatTime(turn.timestamp) }}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -860,7 +860,14 @@ const gameAnalytics = computed(() => {
   // Calculate totals
   const totalThrows = game.totalThrows
   const totalTurns = game.totalTurns
-  const gameDuration = game.gameDuration || 0
+  
+  // Calculate game duration properly
+  let gameDuration = 0
+  if (game.finishedAt && game.createdAt) {
+    const finishedTime = (game.finishedAt as any)?.toDate ? (game.finishedAt as any).toDate() : new Date(game.finishedAt as any)
+    const createdTime = (game.createdAt as any)?.toDate ? (game.createdAt as any).toDate() : new Date(game.createdAt as any)
+    gameDuration = Math.round((finishedTime.getTime() - createdTime.getTime()) / (1000 * 60)) // Convert to minutes
+  }
 
   // Calculate throw distribution
   let totalSingles = 0
@@ -931,6 +938,20 @@ const gameAnalytics = computed(() => {
       })
     })
   }
+  
+  // Also check individual turns for fastest checkout
+  history.forEach(turn => {
+    if (turn.remainingScore === 0 && turn.throws && turn.throws.length > 0) {
+      // Check if it ended with a double (valid checkout)
+      const lastDart = turn.throws[turn.throws.length - 1]
+      if (lastDart && lastDart.multiplier === 'double') {
+        const dartsUsedInTurn = turn.throws.length
+        if (dartsUsedInTurn < fastestCheckout) {
+          fastestCheckout = dartsUsedInTurn
+        }
+      }
+    }
+  })
 
   const averagePerTurn = totalTurns > 0 ? history.reduce((sum, turn) => sum + turn.score, 0) / totalTurns : 0
   const checkoutSuccessRate = totalCheckoutAttempts > 0 ? (totalSuccessfulCheckouts / totalCheckoutAttempts) * 100 : 0
@@ -1099,7 +1120,7 @@ const formatDuration = (minutes: number) => {
 }
 
 const formatTime = (timestamp: string) => {
-  return new Date(timestamp).toLocaleTimeString()
+  return new Date(timestamp).toLocaleString()
 }
 
 const getThrowPercentage = (count: number, total: number) => {

@@ -29,7 +29,7 @@ export default defineNuxtConfig({
     preset: 'static',
     prerender: {
       crawlLinks: false,
-      routes: ['/']
+      routes: ['/', '/404'] // Explicitly include 404 page
     }
   },
   
@@ -37,7 +37,7 @@ export default defineNuxtConfig({
   
   // Generate fallback for client-side routing
   generate: {
-    routes: ['/']
+    routes: ['/', '/404'] // Explicitly include 404 page
   },
   
   // Optimize client bundle with code splitting

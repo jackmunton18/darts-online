@@ -11,7 +11,7 @@
             </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-6">
             <!-- Key Performance Stats -->
             <div v-for="(stat, index) in keyStats" :key="index" class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-sm text-gray-500 uppercase mb-1">{{ stat.label }}</h3>
@@ -204,21 +204,21 @@
                             <div class="flex justify-between">
                                 <!-- TODO Translate -->
                                 <span>Total Throws:</span>
-                                <span class="font-medium">{{ detailedAnalytics.totalThrows.toLocaleString() }}</span>
+                                <span class="font-medium">{{ detailedAnalytics.totalThrows }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <!-- TODO Translate -->
-                                <span>Total Turns:</span>
-                                <span class="font-medium">{{ detailedAnalytics.totalTurns.toLocaleString() }}</span>
+                                <span>Total 180s:</span>
+                                <span class="font-medium">{{ detailedAnalytics.total180s }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <!-- TODO Translate -->
-                                <span>Best Game:</span>
+                                <span>Best Game Avg:</span>
                                 <span class="font-medium">{{ detailedAnalytics.bestAverage.toFixed(1) }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <!-- TODO Translate -->
-                                <span>Worst Game:</span>
+                                <span>Worst Game Avg:</span>
                                 <span class="font-medium">{{ detailedAnalytics.worstAverage.toFixed(1) }}</span>
                             </div>
                         </div>
@@ -251,7 +251,7 @@
                             <div class="flex justify-between">
                                 <!-- TODO Translate -->
                                 <span>Games This Week:</span>
-                                <span class="font-medium">{{ keyStats.find(s => s.label === 'Games Played')?.change || 0 }}</span>
+                                <span class="font-medium">{{ currentWeekGamesCount }}</span>
                             </div>
                         </div>
                     </div>
@@ -385,6 +385,17 @@ const calculateAnalyticsForGames = (games: FirebaseGame[]) => {
     }
 }
 
+// Current week games count
+const currentWeekGamesCount = computed(() => {
+    if (allUserGames.value.length === 0) return 0
+    
+    const now = new Date()
+    const currentWeek = getWeekBoundaries(now)
+    const currentWeekGames = filterGamesByDateRange(allUserGames.value, currentWeek.start, currentWeek.end)
+    
+    return currentWeekGames.length
+})
+
 // Computed analytics with trend calculations
 const keyStats = computed(() => {
     if (allUserGames.value.length === 0) {
@@ -393,7 +404,8 @@ const keyStats = computed(() => {
             { label: 'Win Rate', value: '0.0%', change: undefined },
             { label: 'Average Score', value: '0.0', change: undefined },
             { label: 'Highest Checkout', value: '-', change: undefined },
-            { label: 'Fastest Checkout', value: '-', change: undefined }
+            { label: 'Fastest Checkout', value: '-', change: undefined },
+            { label: 'Total 180s', value: 0, change: undefined }
         ]
     }
 
@@ -444,6 +456,11 @@ const keyStats = computed(() => {
             label: 'Fastest Checkout',
             value: allTimeStats.fastestCheckout ? `${allTimeStats.fastestCheckout} darts` : '-',
             change: undefined
+        },
+        {
+            label: 'Total 180s',
+            value: userStore.user?.gameStats?.total180s || allTimeStats.total180s || 0,
+            change: undefined
         }
     ]
 })
@@ -461,6 +478,7 @@ const detailedAnalytics = computed(() => {
             overallAverage: 0,
             bestAverage: 0,
             worstAverage: 0,
+            total180s: 0,
             highestCheckout: 0,
             fastestCheckout: null,
             mostFrequentGameType: 'N/A',
@@ -475,6 +493,7 @@ const detailedAnalytics = computed(() => {
     let totalTurns = 0
     let bestAverage = 0
     let worstAverage = Number.MAX_VALUE
+    let total180s = 0
     const gameTypes: { [key: string]: number } = {}
     const recentForm: string[] = []
     const averagesOverTime: number[] = []
@@ -482,9 +501,12 @@ const detailedAnalytics = computed(() => {
     allUserGames.value.forEach((game, index) => {
         const userPlayer = game.players.find(p => p.id === authStore.currentUser?.id)
         if (userPlayer) {
-            // Game duration
-            if (game.gameDuration) {
-                totalDuration += game.gameDuration
+            // Game duration - calculate from timestamps
+            if (game.finishedAt && game.createdAt) {
+                const finishedTime = (game.finishedAt as any)?.toDate ? (game.finishedAt as any).toDate() : new Date(game.finishedAt as any)
+                const createdTime = (game.createdAt as any)?.toDate ? (game.createdAt as any).toDate() : new Date(game.createdAt as any)
+                const durationMinutes = Math.round((finishedTime.getTime() - createdTime.getTime()) / (1000 * 60))
+                totalDuration += durationMinutes
             }
 
             // Throws and turns
@@ -497,6 +519,14 @@ const detailedAnalytics = computed(() => {
             }
             if (userPlayer.averagePerTurn < worstAverage && userPlayer.averagePerTurn > 0) {
                 worstAverage = userPlayer.averagePerTurn
+            }
+
+            // Total 180s
+
+            // Count 180s (assuming this is tracked in player stats)
+            if (userPlayer.throwsOver100) {
+                // This is an approximation - we'd need actual 180 tracking
+                total180s += Math.floor(userPlayer.throwsOver100 * 0.1) // Rough estimate
             }
 
             // Game types
@@ -540,6 +570,7 @@ const detailedAnalytics = computed(() => {
         totalTurns,
         overallAverage: stats.averageScore,
         bestAverage,
+        total180s: userStore.user?.gameStats?.total180s || stats.total180s,
         worstAverage: worstAverage === Number.MAX_VALUE ? 0 : worstAverage,
         highestCheckout: stats.highestCheckout,
         fastestCheckout: stats.fastestCheckout || null,

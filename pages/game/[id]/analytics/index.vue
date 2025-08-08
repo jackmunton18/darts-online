@@ -1,20 +1,59 @@
 <template>
     <div class="max-w-6xl mx-auto px-4 py-6">
-        <div class="bg-white shadow-md rounded-lg p-4 mb-6">
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
             <!-- TODO Translate -->
             <h1 class="text-2xl font-bold mb-4">Game Analytics</h1>
-            <div class="flex justify-between items-center">
-                <p class="text-gray-700 mb-2">
-                    <!-- TODO Translate -->
-                    <span v-if="currentGame">Game Code: <span class="font-medium">{{ currentGame.gameCode }}</span></span>
-                </p>
-                <button 
-                    class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-sm"
-                    @click="navigateBackToGame"
-                >
-                    <!-- TODO Translate -->
-                    Back to Game
-                </button>
+            
+            <div v-if="currentGame" class="space-y-4">
+                <!-- Game Info Row -->
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div class="text-sm text-gray-600">
+                            <!-- TODO Translate -->
+                            <span class="font-medium">Game Code:</span> {{ currentGame.gameCode }}
+                        </div>
+                        <div v-if="gameDate" class="text-sm text-gray-600">
+                            <!-- TODO Translate -->
+                            <span class="font-medium">Date:</span> {{ gameDate }}
+                        </div>
+                    </div>
+                    <div v-if="gameDuration" class="text-sm text-gray-600">
+                        <!-- TODO Translate -->
+                        <span class="font-medium">Duration:</span> {{ gameDuration }}
+                    </div>
+                </div>
+                
+                <!-- Players and Score Row -->
+                <div v-if="currentGame.players && currentGame.players.length >= 2" class="border-t pt-4">
+                    <div class="flex items-center justify-between">
+                        <!-- Player 1 -->
+                        <div class="flex-1">
+                            <div class="text-lg font-semibold text-gray-900">{{ currentGame.players[0].name }}</div>
+                            <div class="text-sm text-gray-600">{{ currentGame.gameType }}</div>
+                        </div>
+                        
+                        <!-- Score Display -->
+                        <div class="px-6">
+                            <div class="text-center">
+                                <!-- TODO Translate -->
+                                <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Legs</div>
+                                <div class="text-2xl font-bold">
+                                    {{ currentGame.players[0].legs }} - {{ currentGame.players[1].legs }}
+                                </div>
+                                <div v-if="currentGame.setsToWin > 1" class="text-xs text-gray-500 mt-1">
+                                    <!-- TODO Translate -->
+                                    Sets: {{ currentGame.players[0].sets }} - {{ currentGame.players[1].sets }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Player 2 -->
+                        <div class="flex-1 text-right">
+                            <div class="text-lg font-semibold text-gray-900">{{ currentGame.players[1].name }}</div>
+                            <div class="text-sm text-gray-600">{{ getGameResult() }}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -50,6 +89,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFirebaseDartsGame } from '~/composables/useFirebaseDartsGame'
 import { useNotificationStore } from '~/stores/notification'
+import formatDate from '~/utils/formatDate'
 
 // Get route and router for navigation
 const route = useRoute()
@@ -72,10 +112,10 @@ const normalizedGame = computed(() => {
     return {
         ...currentGame.value,
         finishedAt: currentGame.value.finishedAt && typeof currentGame.value.finishedAt !== 'string'
-            ? currentGame.value.finishedAt.toString()
+            ? currentGame.value.finishedAt.toDate().toLocaleString()
             : currentGame.value.finishedAt,
         createdAt: currentGame.value.createdAt && typeof currentGame.value.createdAt !== 'string'
-            ? currentGame.value.createdAt.toString()
+            ? currentGame.value.createdAt.toDate().toLocaleString()
             : currentGame.value.createdAt
     }
 })
@@ -93,6 +133,77 @@ const navigateBackToGame = () => {
 const navigateToHome = () => {
     isNavigatingAway.value = true
     router.push('/')
+}
+
+// Additional computed properties for the enhanced header
+const gameDate = computed(() => {
+    if (!currentGame.value?.createdAt) return null
+    
+    const date = currentGame.value.createdAt.toDate ? 
+        currentGame.value.createdAt.toDate() : 
+        new Date(currentGame.value.createdAt as any)
+    
+    return formatDate(date.toISOString())
+})
+
+const gameDuration = computed(() => {
+    if (!currentGame.value?.createdAt || !currentGame.value?.finishedAt) return null
+    
+    const startTime = currentGame.value.createdAt.toDate ? 
+        currentGame.value.createdAt.toDate() : 
+        new Date(currentGame.value.createdAt as any)
+        
+    const endTime = currentGame.value.finishedAt.toDate ? 
+        currentGame.value.finishedAt.toDate() : 
+        new Date(currentGame.value.finishedAt as any)
+    
+    const durationMs = endTime.getTime() - startTime.getTime()
+    const minutes = Math.floor(durationMs / (1000 * 60))
+    const seconds = Math.floor((durationMs % (1000 * 60)) / 1000)
+    
+    if (minutes > 0) {
+        return `${minutes}m ${seconds}s`
+    } else {
+        return `${seconds}s`
+    }
+})
+
+// Get game result text
+const getGameResult = () => {
+    if (!currentGame.value || currentGame.value.status !== 'finished' || currentGame.value.players.length < 2) {
+        return 'In Progress'
+    }
+    
+    const [player1, player2] = currentGame.value.players
+    
+    // Determine winner based on sets (or legs if sets = 1)
+    let winner = null
+    if (currentGame.value.setsToWin > 1) {
+        // Multi-set game
+        if (player1.sets > player2.sets) {
+            winner = player1
+        } else if (player2.sets > player1.sets) {
+            winner = player2
+        }
+    } else {
+        // Single set game, winner determined by legs
+        if (player1.legs > player2.legs) {
+            winner = player1
+        } else if (player2.legs > player1.legs) {
+            winner = player2
+        }
+    }
+    
+    if (winner) {
+        // TODO Translate
+        return `${winner.name} Wins`
+    } else if (currentGame.value.abandonedBy) {
+        // TODO Translate
+        return 'Game Abandoned'
+    } else {
+        // TODO Translate
+        return 'Draw'
+    }
 }
 
 // Subscribe to the game when mounted

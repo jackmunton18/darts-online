@@ -1,7 +1,7 @@
 import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import {
   collection, doc, addDoc, getDoc, getFirestore, updateDoc, onSnapshot,
-  query, where, getDocs, serverTimestamp, Timestamp
+  query, where, getDocs, serverTimestamp, Timestamp, deleteDoc
 } from 'firebase/firestore'
 import { useNuxtApp } from '#app'
 import type { Player, GameState, Turn, DartThrow } from '~/stores/game'
@@ -135,6 +135,9 @@ export const useFirebaseDartsGame = () => {
         throw new Error('User not authenticated')
       }
 
+      // Clear any existing game state before creating a new game
+      unsubscribeFromGame()
+
       isLoading.value = true
       error.value = null
 
@@ -216,6 +219,9 @@ export const useFirebaseDartsGame = () => {
       if (!authStore.currentUser) {
         throw new Error('User not authenticated')
       }
+
+      // Clear any existing game state before joining a new game
+      unsubscribeFromGame()
 
       isLoading.value = true
       error.value = null
@@ -597,7 +603,6 @@ export const useFirebaseDartsGame = () => {
         // Make sure we keep ALL players in the game document, not just the current player
         // This ensures all players appear in analytics after game completion
         const allPlayers = [...currentGame.value.players]
-        console.log(`Game finished. Found ${allPlayers.length} players to preserve for analytics.`)
         
         // Make sure all player stats are preserved and correctly calculated
         updatedPlayers = allPlayers.map(player => {
@@ -606,8 +611,7 @@ export const useFirebaseDartsGame = () => {
           
           // Preserve the 'leftGame' flag if it was previously set
           if ((player as any).leftGame) {
-            (updatedPlayer as any).leftGame = true
-            (updatedPlayer as any).leftAt = (player as any).leftAt
+            Object.assign(updatedPlayer, { leftGame: true, leftAt: (player as any).leftAt })
           }
           
           // Ensure these fields exist and have proper values for analytics
@@ -634,8 +638,6 @@ export const useFirebaseDartsGame = () => {
           
           return updatedPlayer
         })
-        
-        console.log(`Game finished with ${updatedPlayers.length} players preserved`)
       }
 
       // Determine next player based on whether a leg was completed
@@ -652,8 +654,6 @@ export const useFirebaseDartsGame = () => {
         // The leg number determines who starts (1-indexed, so subtract 1 for 0-indexed array)
         // We use modulo to cycle through all players
         nextPlayerIndex = legStarterIndices[(currentLeg - 1) % legStarterIndices.length]
-        
-        console.log(`New leg ${currentLeg}: Starting player index set to ${nextPlayerIndex}`)
       } else {
         // For normal turn progression, just go to the next player in the rotation
         nextPlayerIndex = (currentGame.value.currentPlayerIndex + 1) % currentGame.value.players.length
@@ -674,42 +674,61 @@ export const useFirebaseDartsGame = () => {
         // Create a timestamp to use for this update
         const now = new Date().toISOString()
         
-        // Get current leg and set data (or initialize if missing)
+        // Get current leg data (or initialize if missing)
         const currentLegData = currentGame.value.currentLegData || {
           legNumber: currentGame.value.currentLeg,
           setNumber: currentGame.value.currentSet,
           startTimestamp: now,
           totalThrows: 0,
-          playerStats: {}
+          playerStats: {} as Record<string, any>
+        }
+        
+        // Get the current player's existing leg stats (if any)
+        const currentPlayerLegStats = currentLegData.playerStats[currentPlayer.value!.id] || {
+          dartsThrown: 0,
+          totalScore: 0,
+          turns: 0,
+          averagePerTurn: 0,
+          highestScore: 0,
+          checkoutAttempts: 0,
+          checkoutSuccess: false
+        }
+        
+        // Update the current leg stats with this turn's data
+        const updatedPlayerLegStats = {
+          ...currentPlayerLegStats,
+          dartsThrown: currentPlayerLegStats.dartsThrown + dartThrows.length,
+          totalScore: currentPlayerLegStats.totalScore + totalScore,
+          turns: currentPlayerLegStats.turns + 1,
+          averagePerTurn: (currentPlayerLegStats.totalScore + totalScore) / (currentPlayerLegStats.turns + 1),
+          highestScore: Math.max(currentPlayerLegStats.highestScore, totalScore),
+          checkoutAttempts: currentPlayerLegStats.checkoutAttempts + 
+                           (hasCheckoutAttempt(dartThrows, updatedPlayers.find(p => p.id === currentPlayer.value!.id)?.currentScore || 0) ? 1 : 0),
+          checkoutSuccess: winnerPlayerId === currentPlayer.value!.id,
+          singlesHit: currentPlayerLegStats.singlesHit + dartThrows.filter(dart => dart.multiplier === 'single').length,
+          doublesHit: currentPlayerLegStats.doublesHit + dartThrows.filter(dart => dart.multiplier === 'double').length,
+          triplesHit: currentPlayerLegStats.triplesHit + dartThrows.filter(dart => dart.multiplier === 'triple').length,
+          bullsHit: currentPlayerLegStats.bullsHit + dartThrows.filter(dart => dart.value === 25).length,
+          throwsOver100: currentPlayerLegStats.throwsOver100 + (totalScore > 100 ? 1 : 0)
+        }
+        
+        // Update the leg data with the updated player stats
+        const updatedLegData = {
+          ...currentLegData,
+          totalThrows: currentLegData.totalThrows + dartThrows.length,
+          playerStats: {
+            ...currentLegData.playerStats,
+            [currentPlayer.value!.id]: updatedPlayerLegStats
+          }
         }
         
         // Set end timestamp for completed leg
         const completedLegData = {
-          ...currentLegData,
+          ...updatedLegData,
           endTimestamp: now,
           winnerId: winnerPlayerId,
-          // Create a deep copy of the player stats at the end of this leg
-          playerStats: currentGame.value.players.reduce((stats: Record<string, any>, player) => {
-            // Find this player in updatedPlayers to get their latest stats
-            const playerData = updatedPlayers.find(p => p.id === player.id) || player
-            
-            // Store key metrics for this leg
-            stats[player.id] = {
-              dartsThrown: playerData.totalThrows || 0,
-              totalScore: playerData.totalScore || 0,
-              turns: playerData.totalTurns || 0,
-              averagePerTurn: playerData.averagePerTurn || 0,
-              highestScore: playerData.highestTurn || 0,
-              checkoutAttempts: playerData.checkoutAttempts || 0,
-              checkoutSuccess: playerData.id === winnerPlayerId && playerData.successfulCheckouts > 0,
-              singlesHit: playerData.singlesHit || 0,
-              doublesHit: playerData.doublesHit || 0,
-              triplesHit: playerData.triplesHit || 0,
-              bullsHit: playerData.bullsHit || 0,
-              throwsOver100: playerData.throwsOver100 || 0
-            }
-            return stats
-          }, {})
+          winningPlayerId: winnerPlayerId,
+          playerStats: updatedLegData.playerStats
         }
         
         // Create a unique key for this leg in the legsData object
@@ -817,6 +836,59 @@ export const useFirebaseDartsGame = () => {
         if (setCompleted) {
           updateData.currentSet = currentSet
         }
+      } else {
+        // If leg is not completed, still update the current leg data with this turn
+        const currentLegData = currentGame.value.currentLegData || {
+          legNumber: currentGame.value.currentLeg,
+          setNumber: currentGame.value.currentSet,
+          startTimestamp: new Date().toISOString(),
+          totalThrows: 0,
+          playerStats: {} as Record<string, any>
+        }
+        
+        // Get the current player's existing leg stats (if any)
+        const currentPlayerLegStats = currentLegData.playerStats[currentPlayer.value!.id] || {
+          dartsThrown: 0,
+          totalScore: 0,
+          turns: 0,
+          averagePerTurn: 0,
+          highestScore: 0,
+          checkoutAttempts: 0,
+          checkoutSuccess: false,
+          singlesHit: 0,
+          doublesHit: 0,
+          triplesHit: 0,
+          bullsHit: 0,
+          throwsOver100: 0
+        }
+        
+        // Update the current leg stats with this turn's data
+        const updatedPlayerLegStats = {
+          ...currentPlayerLegStats,
+          dartsThrown: currentPlayerLegStats.dartsThrown + dartThrows.length,
+          totalScore: currentPlayerLegStats.totalScore + totalScore,
+          turns: currentPlayerLegStats.turns + 1,
+          averagePerTurn: (currentPlayerLegStats.totalScore + totalScore) / (currentPlayerLegStats.turns + 1),
+          highestScore: Math.max(currentPlayerLegStats.highestScore, totalScore),
+          checkoutAttempts: currentPlayerLegStats.checkoutAttempts + 
+                           (hasCheckoutAttempt(dartThrows, updatedPlayers.find(p => p.id === currentPlayer.value!.id)?.currentScore || 0) ? 1 : 0),
+          checkoutSuccess: false, // Leg not completed yet
+          singlesHit: currentPlayerLegStats.singlesHit + dartThrows.filter(dart => dart.multiplier === 'single').length,
+          doublesHit: currentPlayerLegStats.doublesHit + dartThrows.filter(dart => dart.multiplier === 'double').length,
+          triplesHit: currentPlayerLegStats.triplesHit + dartThrows.filter(dart => dart.multiplier === 'triple').length,
+          bullsHit: currentPlayerLegStats.bullsHit + dartThrows.filter(dart => dart.value === 25).length,
+          throwsOver100: currentPlayerLegStats.throwsOver100 + (totalScore > 100 ? 1 : 0)
+        }
+        
+        // Update the current leg data
+        updateData.currentLegData = {
+          ...currentLegData,
+          totalThrows: currentLegData.totalThrows + dartThrows.length,
+          playerStats: {
+            ...currentLegData.playerStats,
+            [currentPlayer.value!.id]: updatedPlayerLegStats
+          }
+        }
       }
       
       // If game is finished, make sure all history is properly saved
@@ -825,8 +897,54 @@ export const useFirebaseDartsGame = () => {
         updateData.finishedAt = serverTimestamp()
         updateData.winner = winnerPlayerId
         
-        // Log that we have preserved all players for analytics
-        console.log(`Game finished. Preserving data for all ${updatedPlayers.length} players for analytics`)
+        // Update user statistics for all players
+        const { updateUserStatsAfterGame } = useUserAPI()
+        
+        for (const player of updatedPlayers) {
+          try {
+            // Calculate fastest checkout for this player from leg data
+            let fastestCheckout: number | undefined = undefined
+            let highestCheckout = 0
+            
+            // Look through all legs for checkout data
+            if (currentGame.value.legsData) {
+              for (const legKey in currentGame.value.legsData) {
+                const legData = currentGame.value.legsData[legKey]
+                const playerLegStats = legData.playerStats?.[player.id]
+                
+                if (playerLegStats && playerLegStats.checkoutSuccess) {
+                  // If player successfully finished this leg, use total darts thrown in the leg
+                  const totalDartsInLeg = playerLegStats.dartsThrown || 0
+                  
+                  if (totalDartsInLeg > 0 && (fastestCheckout === undefined || totalDartsInLeg < fastestCheckout)) {
+                    fastestCheckout = totalDartsInLeg
+                  }
+                }
+              }
+            }
+            
+            // Use highest checkout from player data
+            if (player.highestCheckout && player.highestCheckout > 0) {
+              highestCheckout = player.highestCheckout
+            }
+            
+            // Calculate 180s for this player from turns data
+            const total180s = calculate180sForPlayer(player.id, turns.value)
+            
+            // Update user stats
+            await updateUserStatsAfterGame(player.id, {
+              won: player.id === winnerPlayerId,
+              totalScore: player.totalScore || 0,
+              totalTurns: player.totalTurns || 1, // Avoid division by zero
+              highestTurn: player.highestTurn || 0,
+              highestCheckout: highestCheckout > 0 ? highestCheckout : undefined,
+              fastestCheckout: fastestCheckout,
+              total180s: total180s
+            })
+          } catch (statsError) {
+            // Don't let stats update failures prevent game completion
+          }
+        }
       }
 
       // Update game state
@@ -858,28 +976,34 @@ export const useFirebaseDartsGame = () => {
       // Check if game is already finished - don't modify player data for finished games
       if (currentGame.value.status === 'finished') {
         // Just unsubscribe without modifying the game data
-        console.log('Game already finished - leaving without modifying player data')
-      } else if (isHost.value) {
-        // If host leaves, end the game but preserve player data
-        await updateDoc(gameRef, {
-          status: 'finished',
-          finishedAt: serverTimestamp(),
-          abandonedBy: authStore.currentUser?.id // Mark that the host abandoned the game
-        })
-      } else if (isCurrentUserPlaying.value) {
-        // Don't remove player completely - mark them as left instead
+      } else if (currentGame.value.status === 'waiting') {
+        // If anyone leaves during waiting phase, check if the game should be deleted
+        if (currentGame.value.players.length <= 1) {
+          // Only one player left (or less), delete the game since it never started
+          // This prevents empty games from cluttering the database and analytics
+          await deleteDoc(gameRef)
+        } else if (isHost.value) {
+          // Host is leaving but there are other players, delete since host is required
+          await deleteDoc(gameRef)
+        } else {
+          // Non-host player leaving, just remove them from the game
+          const updatedPlayers = currentGame.value.players.filter(p => p.id !== authStore.currentUser?.id)
+          await updateDoc(gameRef, { players: updatedPlayers })
+        }
+      } else if (isCurrentUserPlaying.value && currentGame.value.status === 'playing') {
+        // For active games, don't automatically abandon - just mark as left
+        // The game can continue if the other player is still active
         const updatedPlayers = currentGame.value.players.map(p => {
           if (p.id === authStore.currentUser?.id) {
-            // Mark this player as having left the game
+            // Mark this player as having left the game (but not abandoned)
             return { ...p, leftGame: true, leftAt: new Date().toISOString() }
           }
           return p
         })
         
-        // Also track who abandoned the game
         await updateDoc(gameRef, { 
-          players: updatedPlayers,
-          abandonedBy: authStore.currentUser?.id
+          players: updatedPlayers
+          // Do NOT set abandonedBy here - only set it when explicitly abandoning
         })
       } else if (isSpectating.value) {
         // Remove from spectators - this is fine since spectators don't affect game history
@@ -964,6 +1088,12 @@ export const useFirebaseDartsGame = () => {
       unsubscribeTurns.value()
       unsubscribeTurns.value = null
     }
+    
+    // Clear game state to prevent stale data issues
+    currentGame.value = null
+    gameId.value = null
+    turns.value = []
+    error.value = null
   }
 
   // Load active sessions from localStorage
@@ -986,7 +1116,7 @@ export const useFirebaseDartsGame = () => {
         localStorage.setItem('darts_active_sessions', JSON.stringify(activeSessions.value))
       }
     } catch (err) {
-      console.error('Error loading active sessions:', err)
+      // Error loading active sessions
     }
   }
 
@@ -1026,7 +1156,7 @@ export const useFirebaseDartsGame = () => {
       // Save to localStorage
       localStorage.setItem('darts_active_sessions', JSON.stringify(activeSessions.value))
     } catch (err) {
-      console.error('Error saving game session:', err)
+      // Error saving game session
     }
   }
 
@@ -1112,6 +1242,36 @@ export const useFirebaseDartsGame = () => {
       
       // Update the game with abandonment info
       await updateDoc(doc(db, 'games', gameId), gameUpdate)
+      
+      // Update user statistics for all players when game is abandoned
+      const { updateUserStatsAfterGame } = useUserAPI()
+      
+      const playersToUpdate = gameUpdate.players || gameData.players
+      for (const player of playersToUpdate) {
+        try {
+          // For abandoned games, calculate basic stats
+          let highestCheckout = 0
+          if (player.highestCheckout && player.highestCheckout > 0) {
+            highestCheckout = player.highestCheckout
+          }
+          
+          // Calculate 180s for this player from turns data
+          const total180s = calculate180sForPlayer(player.id, turns.value)
+          
+          // Update user stats - winner gets a win, abandoner gets a loss
+          await updateUserStatsAfterGame(player.id, {
+            won: player.id === winner,
+            totalScore: player.totalScore || 0,
+            totalTurns: Math.max(player.totalTurns || 1, 1), // Ensure at least 1 to avoid division by zero
+            highestTurn: player.highestTurn || 0,
+            highestCheckout: highestCheckout > 0 ? highestCheckout : undefined,
+            fastestCheckout: undefined, // No reliable checkout data for abandoned games
+            total180s: total180s
+          })
+        } catch (statsError) {
+          // Don't let stats update failures prevent game abandonment
+        }
+      }
 
       // If this is the current game, update its status locally
       if (currentGame.value && currentGame.value.id === gameId) {
@@ -1135,7 +1295,6 @@ export const useFirebaseDartsGame = () => {
         winner
       }
     } catch (error) {
-      console.error('Error abandoning game:', error)
       throw new Error('Failed to abandon game')
     }
   }
@@ -1144,6 +1303,23 @@ export const useFirebaseDartsGame = () => {
   onBeforeUnmount(() => {
     unsubscribeFromGame()
   })
+
+  // Helper function to calculate number of 180s for a player from turns data
+  const calculate180sForPlayer = (playerId: string, turnsData: Turn[]): number => {
+    let count180s = 0
+    
+    // Filter turns for this player and check each turn's score
+    const playerTurns = turnsData.filter(turn => turn.playerId === playerId)
+    
+    for (const turn of playerTurns) {
+      // A 180 is when the turn score equals 180 (maximum possible score with 3 darts)
+      if (turn.score === 180) {
+        count180s++
+      }
+    }
+    
+    return count180s
+  }
 
   // Return all the reactive properties and methods
   return {

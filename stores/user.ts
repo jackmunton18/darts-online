@@ -93,6 +93,24 @@ export const useUserStore = defineStore('user', () => {
     }
   }
   
+  const updateGameStats = async () => {
+    try {
+      error.value = null
+      
+      const response = await userAPI.updateGameStats()
+      
+      if (response.success && response.user) {
+        user.value = response.user
+        return true
+      }
+      
+      return false
+    } catch (err: any) {
+      error.value = err.message || 'Failed to update game statistics'
+      return false
+    }
+  }
+  
   const clearUser = () => {
     user.value = null
     error.value = null
@@ -113,6 +131,7 @@ export const useUserStore = defineStore('user', () => {
     createOrUpdateUser,
     updateProfile,
     checkUsernameAvailability,
+    updateGameStats,
     clearUser
   }
 })

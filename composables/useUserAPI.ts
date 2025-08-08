@@ -8,6 +8,17 @@ interface UserResponse {
   message?: string;
 }
 
+interface GameStats {
+  gamesPlayed: number;
+  gamesWon: number;
+  winPercentage: number;
+  averageScore: number;
+  highestScore: number;
+  highestCheckout: number;
+  fastestCheckout: number; // Fewest darts for a checkout
+  total180s: number;
+}
+
 export const useUserAPI = () => {
   const currentUser = ref<FirestoreUser | null>(null)
   const isLoading = ref(false)
@@ -54,9 +65,12 @@ export const useUserAPI = () => {
         gameStats: {
           gamesPlayed: 0,
           gamesWon: 0,
+          winPercentage: 0,
           averageScore: 0,
           highestScore: 0,
-          highestCheckout: 0
+          highestCheckout: 0,
+          fastestCheckout: 0,
+          total180s: 0
         }
       }
 
@@ -199,6 +213,181 @@ export const useUserAPI = () => {
     }
   }
 
+  // Get game statistics from user document
+  const calculateGameStats = async (userId: string): Promise<GameStats> => {
+    try {
+      const firestore = getFirestore()
+      
+      // Get user document which contains the aggregated game stats
+      const userDocRef = doc(firestore, 'users', userId)
+      const userSnapshot = await getDoc(userDocRef)
+      
+      if (!userSnapshot.exists()) {
+        return {
+          gamesPlayed: 0,
+          gamesWon: 0,
+          winPercentage: 0,
+          averageScore: 0,
+          highestScore: 0,
+          highestCheckout: 0,
+          fastestCheckout: 0,
+          total180s: 0
+        }
+      }
+      
+      const userData = userSnapshot.data()
+      const gameStats = userData.gameStats || {
+        gamesPlayed: 0,
+        gamesWon: 0,
+        winPercentage: 0,
+        averageScore: 0,
+        highestScore: 0,
+        highestCheckout: 0,
+        fastestCheckout: 0,
+        total180s: 0
+      }
+      
+      return gameStats
+    } catch (err: any) {
+      // Return default stats on error
+      return {
+        gamesPlayed: 0,
+        gamesWon: 0,
+        winPercentage: 0,
+        averageScore: 0,
+        highestScore: 0,
+        highestCheckout: 0,
+        fastestCheckout: 0,
+        total180s: 0
+      }
+    }
+  }
+
+  // Update user's game statistics
+  const updateGameStats = async (userId?: string): Promise<UserResponse> => {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const firestore = getFirestore()
+      const authUser = getCurrentAuthUser()
+      const targetUserId = userId || authUser.uid
+      
+      // Calculate new stats from games
+      const newStats = await calculateGameStats(targetUserId)
+      
+      // Update user document
+      const userDocRef = doc(firestore, 'users', targetUserId)
+      await updateDoc(userDocRef, {
+        gameStats: newStats,
+        updatedAt: new Date()
+      })
+      
+      // If updating current user, refresh their data
+      if (targetUserId === authUser.uid) {
+        const updatedResponse = await getCurrentUser()
+        return updatedResponse
+      }
+      
+      return { success: true }
+    } catch (err: any) {
+      error.value = err.message || 'Failed to update game statistics'
+      return {
+        success: false,
+        message: error.value || 'Failed to update game statistics'
+      }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // Update user's game statistics when a game is completed
+  const updateUserStatsAfterGame = async (userId: string, gameStats: {
+    won: boolean,
+    totalScore: number,
+    totalTurns: number,
+    highestTurn: number,
+    highestCheckout?: number,
+    fastestCheckout?: number, // in number of darts
+    total180s?: number // number of 180s in this game
+  }): Promise<boolean> => {
+    console.log('Updating user stats after game for user:', userId, 'with stats:', gameStats)
+    try {
+      const firestore = getFirestore()
+      const userDocRef = doc(firestore, 'users', userId)
+      
+      // Get current user stats
+      const userSnapshot = await getDoc(userDocRef)
+      if (!userSnapshot.exists()) {
+        return false
+      }
+      
+      const userData = userSnapshot.data()
+      const currentStats = userData.gameStats || {
+        gamesPlayed: 0,
+        gamesWon: 0,
+        winPercentage: 0,
+        averageScore: 0,
+        highestScore: 0,
+        highestCheckout: 0,
+        fastestCheckout: 0,
+        total180s: 0
+      }
+      
+      // Calculate new aggregated stats
+      const newGamesPlayed = currentStats.gamesPlayed + 1
+      const newGamesWon = currentStats.gamesWon + (gameStats.won ? 1 : 0)
+      const newWinPercentage = (newGamesWon / newGamesPlayed) * 100
+      
+      // Calculate new average score (weighted average)
+      const totalPreviousScore = currentStats.averageScore * currentStats.gamesPlayed
+      const newTotalScore = totalPreviousScore + (gameStats.totalScore / gameStats.totalTurns)
+      const newAverageScore = newTotalScore / newGamesPlayed
+      
+      // Update highest score
+      const newHighestScore = Math.max(currentStats.highestScore, gameStats.highestTurn)
+      
+      // Update highest checkout
+      const newHighestCheckout = gameStats.highestCheckout 
+        ? Math.max(currentStats.highestCheckout, gameStats.highestCheckout)
+        : currentStats.highestCheckout
+      
+      // Update fastest checkout (lowest number of darts)
+      let newFastestCheckout = currentStats.fastestCheckout
+      if (gameStats.fastestCheckout) {
+        if (currentStats.fastestCheckout === 0) {
+          newFastestCheckout = gameStats.fastestCheckout
+        } else {
+          newFastestCheckout = Math.min(currentStats.fastestCheckout, gameStats.fastestCheckout)
+        }
+      }
+      
+      // Update total 180s
+      const newTotal180s = currentStats.total180s + (gameStats.total180s || 0)
+      
+      const updatedStats = {
+        gamesPlayed: newGamesPlayed,
+        gamesWon: newGamesWon,
+        winPercentage: newWinPercentage,
+        averageScore: newAverageScore,
+        highestScore: newHighestScore,
+        highestCheckout: newHighestCheckout,
+        fastestCheckout: newFastestCheckout,
+        total180s: newTotal180s
+      }
+      
+      // Update user document
+      await updateDoc(userDocRef, {
+        gameStats: updatedStats,
+        updatedAt: new Date()
+      })
+      
+      return true
+    } catch (err: any) {
+      return false
+    }
+  }
+
   return {
     currentUser: readonly(currentUser),
     isLoading: readonly(isLoading),
@@ -207,6 +396,8 @@ export const useUserAPI = () => {
     getCurrentUser,
     updateProfile,
     checkUsernameAvailability,
-    clearCurrentUser
+    clearCurrentUser,
+    updateGameStats,
+    updateUserStatsAfterGame
   }
 }

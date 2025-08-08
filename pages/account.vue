@@ -154,45 +154,6 @@
             </form>
         </div>
 
-        <!-- Game Statistics Section -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <!-- TODO Translate -->
-            <h2 class="text-xl font-bold mb-4">Game Statistics</h2>
-            
-            <div v-if="userStore.user?.gameStats" class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div class="text-center">
-                    <!-- TODO Translate -->
-                    <p class="text-2xl font-bold text-blue-600">{{ userStore.user.gameStats.gamesPlayed }}</p>
-                    <p class="text-sm text-gray-600">Games Played</p>
-                </div>
-                <div class="text-center">
-                    <!-- TODO Translate -->
-                    <p class="text-2xl font-bold text-green-600">{{ userStore.user.gameStats.gamesWon }}</p>
-                    <p class="text-sm text-gray-600">Games Won</p>
-                </div>
-                <div class="text-center">
-                    <!-- TODO Translate -->
-                    <p class="text-2xl font-bold text-purple-600">{{ userStore.user.gameStats.averageScore.toFixed(1) }}</p>
-                    <p class="text-sm text-gray-600">Average Score</p>
-                </div>
-                <div class="text-center">
-                    <!-- TODO Translate -->
-                    <p class="text-2xl font-bold text-orange-600">{{ userStore.user.gameStats.highestScore }}</p>
-                    <p class="text-sm text-gray-600">Highest Score</p>
-                </div>
-                <div class="text-center">
-                    <!-- TODO Translate -->
-                    <p class="text-2xl font-bold text-red-600">{{ userStore.user.gameStats.highestCheckout }}</p>
-                    <p class="text-sm text-gray-600">Highest Checkout</p>
-                </div>
-            </div>
-            
-            <div v-else class="text-center py-6 text-gray-500">
-                <!-- TODO Translate -->
-                No game statistics available yet. Start playing to see your stats!
-            </div>
-        </div>
-
         <!-- Account Actions Section -->
         <div class="bg-white rounded-lg shadow-md p-6">
             <!-- TODO Translate -->
@@ -330,7 +291,7 @@ const checkUsernameAvailability = async () => {
             const response = await userStore.checkUsernameAvailability(form.value.username)
             isUsernameAvailable.value = response.available
         } catch (err) {
-            console.error('Failed to check username availability:', err)
+            // Failed to check username availability
             isUsernameAvailable.value = null
         } finally {
             isCheckingUsername.value = false
@@ -413,6 +374,7 @@ const signOut = async () => {
         isSigningOut.value = false
     }
 }
+
 
 // Watch for user changes
 watch(() => userStore.user, (newUser) => {

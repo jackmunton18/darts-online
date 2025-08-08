@@ -8,13 +8,24 @@
                     <!-- TODO Translate -->
                     <span v-if="currentGame">Game Code: <span class="font-medium">{{ currentGame.gameCode }}</span></span>
                 </p>
-                <button 
-                    class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-sm"
-                    @click="navigateToHome"
-                >
-                    <!-- TODO Translate -->
-                    Back to Games
-                </button>
+                <div class="flex space-x-3">
+                    <!-- Abandon Game Button (only show for active players in playing games) -->
+                    <button 
+                        v-if="currentGame && currentGame.status === 'playing' && isCurrentUserPlaying"
+                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                        @click="showAbandonConfirm = true"
+                    >
+                        <!-- TODO Translate -->
+                        Abandon Game
+                    </button>
+                    <button 
+                        class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-sm"
+                        @click="navigateToHome"
+                    >
+                        <!-- TODO Translate -->
+                        Back to Games
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -37,17 +48,17 @@
 
         <div v-else>
             <!-- Game Lobby (Only show when waiting) -->
-            <div v-if="currentGame.status === 'waiting'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white rounded-lg shadow-md p-6">
+            <div v-if="currentGame.status === 'waiting'" class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <div class="bg-white rounded-lg shadow-md p-4 md:p-6">
                     <!-- TODO Translate -->
                     <h3 class="text-lg font-semibold mb-4">Game Lobby</h3>
                     
-                    <div class="bg-gray-100 p-4 rounded-lg mb-4 flex justify-between items-center">
+                    <div class="bg-gray-100 p-3 md:p-4 rounded-lg mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
                         <!-- TODO Translate -->
-                        <div class="font-medium">Game Code: <span class="text-blue-600 font-bold">{{ currentGame.gameCode }}</span></div>
+                        <div class="font-medium text-center sm:text-left">Game Code: <span class="text-blue-600 font-bold tracking-wider">{{ currentGame.gameCode }}</span></div>
                         <button 
                             @click="copyGameCode" 
-                            class="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded"
+                            class="w-full sm:w-auto text-sm px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded touch-manipulation"
                         >
                             <!-- TODO Translate -->
                             Copy
@@ -83,20 +94,22 @@
                         </ul>
                     </div>
                     
-                    <div class="flex space-x-4">
+                    <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
                         <button
                             v-if="isHost"
                             @click="handleStartGame"
                             :disabled="isLoading || currentGame.players.length < 2"
-                            class="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            class="flex-1 bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-base font-medium touch-manipulation"
+                            style="min-height: 52px;"
                         >
                             <!-- TODO Translate -->
-                            {{ isLoading ? 'Starting...' : currentGame.players.length < 2 ? `Waiting for ${2 - currentGame.players.length} more player(s)` : 'Start Game' }}
+                            {{ isLoading ? 'Starting...' : currentGame.players.length < 2 ? `Waiting for players` : 'Start Game' }}
                         </button>
                         <button
                             @click="handleLeaveGame"
                             :disabled="isLoading"
-                            class="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            class="flex-1 bg-red-600 text-white py-3 px-4 rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-base font-medium touch-manipulation"
+                            style="min-height: 52px;"
                         >
                             <!-- TODO Translate -->
                             {{ isLoading ? 'Leaving...' : 'Leave Game' }}
@@ -149,8 +162,42 @@
                 </div>
             </div>
             
-            <!-- Scoring Component (Only show when playing) - Full width layout -->
-            <DartsScoringGame v-if="currentGame.status === 'playing'" :key="gameId" />
+            <!-- Scoring Component (show when playing or just finished to allow modal to appear) - Full width layout -->
+            <DartsScoringGame v-if="currentGame.status === 'playing' || currentGame.status === 'finished'" :key="gameId" />
+        </div>
+        
+        <!-- Abandon Game Confirmation Modal -->
+        <div v-if="showAbandonConfirm" class="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div class="absolute inset-0 bg-black bg-opacity-50" @click="showAbandonConfirm = false"></div>
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-md relative z-10">
+                <div class="p-6">
+                    <!-- TODO Translate -->
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900">Abandon Game?</h3>
+                    <p class="text-gray-600 mb-6">
+                        <!-- TODO Translate -->
+                        Are you sure you want to abandon this game? Your opponent will be awarded the win and the game will end immediately. This action cannot be undone.
+                    </p>
+                    
+                    <div class="flex space-x-4">
+                        <button
+                            @click="showAbandonConfirm = false"
+                            class="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 font-medium"
+                            :disabled="isAbandoning"
+                        >
+                            <!-- TODO Translate -->
+                            Cancel
+                        </button>
+                        <button
+                            @click="handleAbandonGame"
+                            class="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 font-medium"
+                            :disabled="isAbandoning"
+                        >
+                            <!-- TODO Translate -->
+                            {{ isAbandoning ? 'Abandoning...' : 'Yes, Abandon Game' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -161,6 +208,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useFirebaseDartsGame } from '~/composables/useFirebaseDartsGame'
 import { useGamePersistence } from '~/composables/useGamePersistence'
 import { useNotificationStore } from '~/stores/notification'
+import { useAuthStore } from '~/stores/auth'
 import type { DartThrow, Turn } from '~/stores/game'
 import type { FirebaseGame } from '~/composables/useFirebaseDartsGame'
 
@@ -181,11 +229,14 @@ const {
     subscribeToGame,
     leaveGame,
     startGame,
-    unsubscribeFromGame
+    unsubscribeFromGame,
+    abandonGame
 } = useFirebaseDartsGame()
 
 const isLoading = ref(true)
 const isNavigatingAway = ref(false)
+const showAbandonConfirm = ref(false)
+const isAbandoning = ref(false)
 
 // Game persistence service
 const { 
@@ -252,6 +303,53 @@ const copyGameCode = () => {
         })
 }
 
+const handleAbandonGame = async () => {
+    if (!currentGame.value || !gameId.value) {
+        return
+    }
+
+    try {
+        isAbandoning.value = true
+        
+        const authStore = useAuthStore()
+        
+        if (!authStore.currentUser) {
+            throw new Error('User not authenticated')
+        }
+
+        if (!abandonGame) {
+            throw new Error('Abandon game function not available')
+        }
+
+        const result = await abandonGame(gameId.value, authStore.currentUser.id)
+        
+        if (result.success) {
+            toast.addMessage({
+                type: 'warning',
+                message: 'You have abandoned the game. Your opponent has been awarded the win.'
+            })
+            
+            // Close the modal
+            showAbandonConfirm.value = false
+            
+            // Navigate to analytics page after a brief delay
+            setTimeout(() => {
+                router.push(`/game/${gameId.value}/analytics`)
+            }, 1500)
+        } else {
+            throw new Error('Failed to abandon game')
+        }
+    } catch (error) {
+        console.error('Error abandoning game:', error)
+        toast.addMessage({
+            type: 'error',
+            message: 'Failed to abandon the game. Please try again.'
+        })
+    } finally {
+        isAbandoning.value = false
+    }
+}
+
 // Methods
 const getPlayerDisplayName = (player: any): string => {
     // For new games, player.name should already contain the Firestore username
@@ -286,15 +384,8 @@ const formatThrow = (dartThrow: DartThrow): string => {
 // Watch for game status changes
 watch(() => currentGame.value?.status, (newStatus, oldStatus) => {
     if (newStatus === 'finished' && oldStatus === 'playing') {
-        toast.addMessage({
-            type: 'success',
-            message: 'Game has finished!'
-        })
-        
-        // Redirect to analytics page after a short delay to allow the user to see the success message
-        setTimeout(() => {
-            navigateTo(`/game/${route.params.id}/analytics`)
-        }, 1500)
+        // Don't navigate automatically - let the DartsScoringGame modal handle this
+        console.log('Game finished, modal should appear in DartsScoringGame component')
     }
 })
 

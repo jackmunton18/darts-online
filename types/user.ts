@@ -10,9 +10,12 @@ export interface FirestoreUser {
   gameStats?: {           // Game statistics
     gamesPlayed: number;
     gamesWon: number;
+    winPercentage: number;
     averageScore: number;
     highestScore: number;
     highestCheckout: number;
+    fastestCheckout: number;
+    total180s: number;
   };
 }
 
