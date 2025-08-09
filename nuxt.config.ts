@@ -29,15 +29,20 @@ export default defineNuxtConfig({
     preset: 'static',
     prerender: {
       crawlLinks: false,
-      routes: ['/', '/404'] // Explicitly include 404 page
+      routes: ['/']
     }
   },
   
   ssr: false, // Enable SPA mode
   
-  // Generate fallback for client-side routing
-  generate: {
-    routes: ['/', '/404'] // Explicitly include 404 page
+  experimental: {
+    payloadExtraction: false // Required for dynamic routes in static mode
+  },
+  
+  router: {
+    options: {
+      hashMode: false
+    }
   },
   
   // Optimize client bundle with code splitting

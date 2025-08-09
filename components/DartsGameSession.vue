@@ -419,10 +419,9 @@ import { useDartsScoring } from '~/composables/useDartsScoring'
 import { useNotificationStore } from '~/stores/notification'
 import { useAuthStore } from '~/stores/auth'
 import { onMounted, ref, computed, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 // Setup router and route
-const router = useRouter()
 const route = useRoute()
 
 // Detect if the component is being used in a game page
@@ -506,7 +505,7 @@ const handleCreateGame = async () => {
             // Game is created, saveGameSession will be called by the composable
             
             // Navigate to the game page
-            router.push(`/game/${result.gameId}`)
+            await navigateTo(`/game/${result.gameId}`)
         }
     } catch (err: any) {
         toast.addMessage({ 
@@ -554,7 +553,7 @@ const handleJoinGame = async (role: 'player' | 'spectator' = 'player') => {
             })
         } else if (result && typeof result === 'object' && 'gameId' in result && result.gameId) {
             // Navigate to the game page
-            router.push(`/game/${result.gameId}`)
+            await navigateTo(`/game/${result.gameId}`)
         }
     } catch (err: any) {
         toast.addMessage({ 
@@ -573,7 +572,7 @@ const handleStartGame = async () => {
         
         // If we're still on the home page, navigate to the game page
         if (success && gameId.value) {
-            router.push(`/game/${gameId.value}`)
+            await navigateTo(`/game/${gameId.value}`)
         }
     } catch (err: any) {
         toast.addMessage({ 
@@ -635,7 +634,7 @@ onMounted(() => {
 // New method to return to an active game
 const returnToGame = () => {
     if (gameId.value) {
-        router.push(`/game/${gameId.value}`)
+        navigateTo(`/game/${gameId.value}`)
     }
 }
 </script>
