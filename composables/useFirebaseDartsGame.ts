@@ -141,11 +141,28 @@ export const useFirebaseDartsGame = () => {
       isLoading.value = true
       error.value = null
 
+      // Ensure user data is loaded for proper display name
+      if (!userStore.user) {
+        await userStore.fetchUser()
+      }
+      
+      // Debug logging to identify username issues
+      console.log('User data for game creation:', {
+        username: userStore.user?.username,
+        firstName: userStore.user?.firstName,
+        lastName: userStore.user?.lastName,
+        authName: authStore.currentUser.name,
+        authEmail: authStore.currentUser.email
+      })
+
       const gameCode = generateGameCode()
       
       const initialPlayer: Player = {
         id: authStore.currentUser.id,
-        name: userStore.user?.username || userStore.user?.firstName || authStore.currentUser.name || 'Player 1',
+        name: userStore.user?.username || 
+              (userStore.user?.firstName ? `${userStore.user.firstName} ${userStore.user.lastName || ''}`.trim() : null) ||
+              authStore.currentUser.email?.split('@')[0] ||
+              'Player 1',
         currentScore: gameConfig.startingScore || 501,
         legs: 0,
         sets: 0,
@@ -265,10 +282,20 @@ export const useFirebaseDartsGame = () => {
         await userStore.fetchUser()
       }
       
+      // Debug logging to identify username issues
+      console.log('User data for game joining:', {
+        username: userStore.user?.username,
+        firstName: userStore.user?.firstName,
+        lastName: userStore.user?.lastName,
+        authName: authStore.currentUser.name,
+        authEmail: authStore.currentUser.email
+      })
+      
       // Use preferred username from user profile if available
       const displayName = userStore.user?.username || 
-                          (userStore.user?.firstName ? `${userStore.user.firstName} ${userStore.user.lastName || ''}`.trim() : 
-                          authStore.currentUser.name)
+                          (userStore.user?.firstName ? `${userStore.user.firstName} ${userStore.user.lastName || ''}`.trim() : null) ||
+                          authStore.currentUser.email?.split('@')[0] ||
+                          'Player'
       
       // Add user to the game
       if (role === 'player') {

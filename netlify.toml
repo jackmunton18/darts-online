@@ -9,8 +9,14 @@
 
 # Handle client-side routing for SPA
 [[redirects]]
-  from = "/*"
+  from = "/game/*"
   to = "/200.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
   status = 200
   force = false
 

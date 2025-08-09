@@ -29,7 +29,6 @@
 
 <script setup lang="ts">
 // This is a catch-all route for client-side navigation in static mode
-// It will handle any routes that weren't pre-rendered during build
 const route = useRoute()
 
 // Navigation functions
@@ -38,7 +37,7 @@ const goHome = () => {
 }
 
 const goBack = () => {
-    // Use browser's back functionality
+    // Use browser's back functionality if available, otherwise go home
     if (process.client && window.history.length > 1) {
         window.history.back()
     } else {
@@ -46,21 +45,23 @@ const goBack = () => {
     }
 }
 
-// If this is a game route, redirect appropriately
+// Client-side route handling
 onMounted(() => {
-    const path = route.path
-    
-    // Check if this is a game route that should be handled by the game page
-    if (path.startsWith('/game/') && path.split('/').length >= 3) {
-        // Let the client-side router handle this
-        const gameId = path.split('/')[2]
-        if (gameId && gameId.length > 10) { // Basic validation
-            // This should work in client-side navigation
+    if (process.client) {
+        const path = route.path
+        
+        // If this is a game route, try to handle it with the Vue router
+        if (path.startsWith('/game/')) {
+            // Log for debugging
+            console.log('Handling game route client-side:', path)
+            
+            // Let the client-side router handle game routes naturally
+            // The SPA will resolve the route through the normal routing mechanism
             return
         }
+        
+        // For other unmatched routes, show 404
+        console.log('Unmatched route (showing 404):', path)
     }
-    
-    // For any other unmatched routes, we'll show the 404 page
-    console.log('Unmatched route:', path)
 })
 </script>
