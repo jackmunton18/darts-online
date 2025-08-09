@@ -31,7 +31,6 @@
 // This is a catch-all route for client-side navigation in static mode
 // It will handle any routes that weren't pre-rendered during build
 const route = useRoute()
-const router = useRouter()
 
 // Navigation functions
 const goHome = () => {
@@ -39,7 +38,12 @@ const goHome = () => {
 }
 
 const goBack = () => {
-    router.go(-1)
+    // Use browser's back functionality
+    if (process.client && window.history.length > 1) {
+        window.history.back()
+    } else {
+        navigateTo('/')
+    }
 }
 
 // If this is a game route, redirect appropriately

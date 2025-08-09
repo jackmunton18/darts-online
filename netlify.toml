@@ -10,8 +10,9 @@
 # Handle client-side routing for SPA
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/200.html"
   status = 200
+  force = false
 
 # Set security headers for all pages
 [[headers]]

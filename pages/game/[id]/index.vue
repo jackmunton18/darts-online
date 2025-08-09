@@ -204,7 +204,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { useFirebaseDartsGame } from '~/composables/useFirebaseDartsGame'
 import { useGamePersistence } from '~/composables/useGamePersistence'
 import { useNotificationStore } from '~/stores/notification'
@@ -212,9 +211,8 @@ import { useAuthStore } from '~/stores/auth'
 import type { DartThrow, Turn } from '~/stores/game'
 import type { FirebaseGame } from '~/composables/useFirebaseDartsGame'
 
-// Get route and router for navigation
+// Get route for parameters
 const route = useRoute()
-const router = useRouter()
 const toast = useNotificationStore()
 
 // Get the game ID from the route params
@@ -246,13 +244,13 @@ const {
 // Navigate back to home games list
 const navigateToHome = () => {
     isNavigatingAway.value = true
-    router.push('/')
+    navigateTo('/')
 }
 
 // Navigate to analytics for this game
 const navigateToGameAnalytics = () => {
     isNavigatingAway.value = true
-    router.push(`/game/${gameId.value}/analytics`)
+    navigateTo(`/game/${gameId.value}/analytics`)
 }
 
 // Handle game actions
@@ -334,7 +332,7 @@ const handleAbandonGame = async () => {
             
             // Navigate to analytics page after a brief delay
             setTimeout(() => {
-                router.push(`/game/${gameId.value}/analytics`)
+                navigateTo(`/game/${gameId.value}/analytics`)
             }, 1500)
         } else {
             throw new Error('Failed to abandon game')

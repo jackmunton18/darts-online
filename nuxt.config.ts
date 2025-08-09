@@ -24,13 +24,9 @@ export default defineNuxtConfig({
     },
   },
   
-  // Static generation configuration
+  // Static generation configuration for SPA
   nitro: {
-    preset: 'static',
-    prerender: {
-      crawlLinks: false,
-      routes: ['/']
-    }
+    preset: 'static'
   },
   
   ssr: false, // Enable SPA mode
@@ -39,10 +35,9 @@ export default defineNuxtConfig({
     payloadExtraction: false // Required for dynamic routes in static mode
   },
   
-  router: {
-    options: {
-      hashMode: false
-    }
+  // Generate static pages with fallback for dynamic routes
+  generate: {
+    fallback: '200.html' // This creates a fallback page for dynamic routes
   },
   
   // Optimize client bundle with code splitting
