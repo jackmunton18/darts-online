@@ -241,10 +241,17 @@ const {
     saveGameSession
 } = useGamePersistence()
 
-// Navigate back to home games list
+// Navigate back to appropriate page
 const navigateToHome = () => {
     isNavigatingAway.value = true
-    navigateTo('/')
+    
+    // If this is a tournament game, navigate back to the tournament lobby
+    if (currentGame.value && currentGame.value.tournamentId) {
+        navigateTo(`/tournament/${currentGame.value.tournamentId}`)
+    } else {
+        // Regular game, navigate to home
+        navigateTo('/')
+    }
 }
 
 // Navigate to analytics for this game

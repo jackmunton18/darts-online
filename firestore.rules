@@ -27,10 +27,40 @@ service cloud.firestore {
       }
     }
     
+    // Tournament permissions
+    match /tournaments/{tournamentId} {
+      // Anyone authenticated can read tournaments
+      allow read: if request.auth != null;
+      
+      // Anyone authenticated can create a tournament
+      allow create: if request.auth != null;
+      
+      // Tournament host can always update, or any authenticated user can update for now (simplified)
+      allow update: if request.auth != null;
+      
+      // Only the host can delete tournaments
+      allow delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
+    }
+    
     // Player statistics
     match /playerStats/{userId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Tournament results collection
+    match /tournament_results/{resultId} {
+      // Anyone authenticated can read tournament results
+      allow read: if request.auth != null;
+      
+      // Anyone authenticated can create tournament results
+      allow create: if request.auth != null;
+      
+      // Anyone authenticated can update tournament results (simplified for testing)
+      allow update: if request.auth != null;
+      
+      // Anyone authenticated can delete tournament results (simplified for testing)
+      allow delete: if request.auth != null;
     }
   }
 }

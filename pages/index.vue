@@ -19,14 +19,16 @@
                 class="w-full bg-blue-600 text-white py-12 px-4 rounded-md hover:bg-blue-700 text-base font-medium touch-manipulation flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 style="min-height: 52px;"
             >
+                <!-- TODO Translate -->
                 Versus Mode
             </button>
             <button 
-                @click="navigateToVersus"
-                class="w-full bg-blue-600 text-white py-12 px-4 rounded-md hover:bg-blue-700 text-base font-medium touch-manipulation flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 opacity-50 pointer-events-none"
+                @click="navigateToTournament"
+                class="w-full bg-green-600 text-white py-12 px-4 rounded-md hover:bg-green-700 text-base font-medium touch-manipulation flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 style="min-height: 52px;"
             >
-                Tournament Mode (Coming Soon)
+                <!-- TODO Translate -->
+                Tournament Mode
             </button>
             <!-- Quick Actions -->
             <!-- <div class="bg-white rounded-lg shadow-md p-4 md:p-6">
@@ -278,6 +280,11 @@ const navigateToGame = async (gameId: string) => {
 // Navigate to versus page
 const navigateToVersus = () => {
     router.push('/versus')
+}
+
+// Navigate to tournament page
+const navigateToTournament = () => {
+    router.push('/tournament')
 }
 
 // Navigate to game analytics

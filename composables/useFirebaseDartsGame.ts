@@ -17,6 +17,7 @@ export interface FirebaseGame extends Omit<GameState, 'createdAt' | 'finishedAt'
   hostId: string
   spectators: string[]
   legStarterIndices?: number[] // Array of player indices that should start legs in order
+  tournamentId?: string // Optional tournament context
 }
 
 interface StoredGameSession {
@@ -129,6 +130,8 @@ export const useFirebaseDartsGame = () => {
     legsToWin: number; 
     setsToWin: number;
     startingScore: number;
+    tournamentId?: string; // Add tournament context
+    skipGameCode?: boolean; // Option to skip game code for tournament games
   }) => {
     try {
       if (!authStore.currentUser) {
@@ -141,28 +144,12 @@ export const useFirebaseDartsGame = () => {
       isLoading.value = true
       error.value = null
 
-      // Ensure user data is loaded for proper display name
-      if (!userStore.user) {
-        await userStore.fetchUser()
-      }
-      
-      // Debug logging to identify username issues
-      console.log('User data for game creation:', {
-        username: userStore.user?.username,
-        firstName: userStore.user?.firstName,
-        lastName: userStore.user?.lastName,
-        authName: authStore.currentUser.name,
-        authEmail: authStore.currentUser.email
-      })
-
-      const gameCode = generateGameCode()
+      // Only generate game code if not a tournament game
+      const gameCode = gameConfig.skipGameCode ? '' : generateGameCode()
       
       const initialPlayer: Player = {
         id: authStore.currentUser.id,
-        name: userStore.user?.username || 
-              (userStore.user?.firstName ? `${userStore.user.firstName} ${userStore.user.lastName || ''}`.trim() : null) ||
-              authStore.currentUser.email?.split('@')[0] ||
-              'Player 1',
+        name: userStore.user?.username || userStore.user?.firstName || authStore.currentUser.name || 'Player 1',
         currentScore: gameConfig.startingScore || 501,
         legs: 0,
         sets: 0,
@@ -200,7 +187,9 @@ export const useFirebaseDartsGame = () => {
         // Initialize with alternating player indices for leg starters
         // Will be populated with all player indices once all players join
         legStarterIndices: [0],
-        createdAt: serverTimestamp() as Timestamp
+        createdAt: serverTimestamp() as Timestamp,
+        // Add tournament context if provided
+        ...(gameConfig.tournamentId && { tournamentId: gameConfig.tournamentId })
       }
 
       const gamesCollection = collection(db, 'games')
@@ -282,20 +271,10 @@ export const useFirebaseDartsGame = () => {
         await userStore.fetchUser()
       }
       
-      // Debug logging to identify username issues
-      console.log('User data for game joining:', {
-        username: userStore.user?.username,
-        firstName: userStore.user?.firstName,
-        lastName: userStore.user?.lastName,
-        authName: authStore.currentUser.name,
-        authEmail: authStore.currentUser.email
-      })
-      
       // Use preferred username from user profile if available
       const displayName = userStore.user?.username || 
-                          (userStore.user?.firstName ? `${userStore.user.firstName} ${userStore.user.lastName || ''}`.trim() : null) ||
-                          authStore.currentUser.email?.split('@')[0] ||
-                          'Player'
+                          (userStore.user?.firstName ? `${userStore.user.firstName} ${userStore.user.lastName || ''}`.trim() : 
+                          authStore.currentUser.name)
       
       // Add user to the game
       if (role === 'player') {
@@ -369,6 +348,121 @@ export const useFirebaseDartsGame = () => {
       error.value = message
       toast.addMessage({ type: 'error', message })
       return { gameId: null, error: message }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // Join a game by ID (for tournament games)
+  const joinGameById = async (gameId: string, role: 'player' | 'spectator' = 'player') => {
+    try {
+      if (!authStore.currentUser) {
+        throw new Error('User not authenticated')
+      }
+
+      // Clear any existing game state before joining a new game
+      unsubscribeFromGame()
+
+      isLoading.value = true
+      error.value = null
+
+      // Get game document by ID
+      const gameDoc = await getDoc(doc(db, 'games', gameId))
+      
+      if (!gameDoc.exists()) {
+        throw new Error('Game not found')
+      }
+      
+      const gameData = gameDoc.data() as FirebaseGame
+      
+      // Check if user is already in the game
+      const userId = authStore.currentUser.id
+      const isAlreadyPlayer = gameData.players.some(p => p.id === userId)
+      const isAlreadySpectator = gameData.spectators?.includes(userId)
+      
+      if (isAlreadyPlayer || isAlreadySpectator) {
+        // User is already in the game, just subscribe to it
+        globalGameId.value = gameId
+        await subscribeToGame(gameId)
+        
+        // Store session
+        saveGameSession()
+        
+        return { gameId, success: true }
+      }
+      
+      // Get user data from Firestore for proper display name
+      const userStore = useUserStore()
+      if (!userStore.user) {
+        await userStore.fetchUser()
+      }
+      
+      // Use preferred username from user profile if available
+      const displayName = userStore.user?.username || 
+                          (userStore.user?.firstName ? `${userStore.user.firstName} ${userStore.user.lastName || ''}`.trim() : 
+                          authStore.currentUser.name)
+      
+      // Add user to the game
+      if (role === 'player') {
+        if (gameData.players.length >= 4) { // Assuming max 4 players for darts
+          throw new Error('Game is full')
+        }
+        
+        // Add as player
+        const newPlayer = {
+          id: userId,
+          name: displayName,
+          currentScore: parseInt(gameData.gameType) || 501,
+          legs: 0,
+          sets: 0,
+          totalThrows: 0,
+          totalScore: 0,
+          averagePerTurn: 0,
+          throwsOver100: 0,
+          doublesHit: 0,
+          triplesHit: 0,
+          singlesHit: 0,
+          bullsHit: 0,
+          checkoutAttempts: 0,
+          successfulCheckouts: 0,
+          highestCheckout: 0,
+          highestTurn: 0,
+          totalTurns: 0,
+          checkoutPercentage: 0
+        }
+        
+        const updatedPlayers = [...gameData.players, newPlayer]
+        
+        // Update legStarterIndices to include all players
+        const legStarterIndices = updatedPlayers.map((_, index) => index)
+        
+        await updateDoc(doc(db, 'games', gameId), {
+          players: updatedPlayers,
+          legStarterIndices
+        })
+      } else {
+        // Add as spectator
+        const updatedSpectators = [...(gameData.spectators || []), userId]
+        
+        await updateDoc(doc(db, 'games', gameId), {
+          spectators: updatedSpectators
+        })
+      }
+      
+      globalGameId.value = gameId
+      
+      // Start listening for game updates
+      await subscribeToGame(gameId)
+      
+      // Store session
+      saveGameSession()
+      
+      return { gameId, success: true }
+      
+    } catch (err) {
+      console.error('Error joining game:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to join game'
+      return { gameId: null, success: false, error: error.value }
     } finally {
       isLoading.value = false
     }
@@ -618,10 +712,22 @@ export const useFirebaseDartsGame = () => {
         legWinnerIndex = currentGame.value.players.findIndex(p => p.id === winnerPlayerId)
       }
       
-      // If leg was completed but game is not finished, reset all players' scores for the next leg
+      // Store the current scores before resetting for the next leg
+      // This preserves the final leg scores for display in the transition modal
+      const finalLegScores: Record<string, number> = {}
       if (legCompleted && !gameFinished) {
+        // Store the final leg scores but don't reset yet - we'll do this when the modal is closed
         updatedPlayers.forEach(player => {
-          player.currentScore = 501 // Reset to starting score
+          finalLegScores[player.id] = player.currentScore
+        })
+        
+        // We need to reset scores for the next leg after the modal is shown
+        const gameConfig = currentGame.value?.gameType || '501'
+        const startingScore = gameConfig === '301' ? 301 : gameConfig === '701' ? 701 : 501
+        
+        // Reset scores for the next leg
+        updatedPlayers.forEach(player => {
+          player.currentScore = startingScore
         })
       }
       
@@ -692,8 +798,7 @@ export const useFirebaseDartsGame = () => {
         currentPlayerIndex: nextPlayerIndex,
         totalThrows: currentGame.value.totalThrows + dartThrows.length,
         totalTurns: currentGame.value.totalTurns + 1,
-        currentTurnThrows: 0, // Reset for next player
-        updatedAt: serverTimestamp()
+        currentTurnThrows: 0 // Reset for next player
       }
       
       // If a leg was completed, save the leg history
@@ -970,6 +1075,112 @@ export const useFirebaseDartsGame = () => {
             })
           } catch (statsError) {
             // Don't let stats update failures prevent game completion
+          }
+        }
+        
+        // If this is a tournament game, update tournament results
+        if (currentGame.value.tournamentId && winnerPlayerId) {
+          try {
+            console.log('🏆 Updating tournament results for tournament:', currentGame.value.tournamentId)
+            console.log('🏆 Game ID:', gameId.value)
+            console.log('🏆 Winner ID:', winnerPlayerId)
+            
+            const { updateTournamentGameResult, getTournament } = useTournament()
+            
+            // Calculate bonus stats for both players
+            const winnerData = updatedPlayers.find(p => p.id === winnerPlayerId)
+            const loserData = updatedPlayers.find(p => p.id !== winnerPlayerId)
+            
+            if (winnerData && loserData) {
+              console.log('🏆 Winner data:', winnerData.id, winnerData.name)
+              console.log('🏆 Loser data:', loserData.id, loserData.name)
+              console.log('🏆 Winner stats:', JSON.stringify({
+                legs: winnerData.legs || 0,
+                sets: winnerData.sets || 0,
+                checkouts: winnerData.successfulCheckouts || 0
+              }))
+              
+              // Calculate 180s and other bonus stats from game data
+              const winner180s = calculate180sForPlayer(winnerData.id, turns.value)
+              const loser180s = calculate180sForPlayer(loserData.id, turns.value)
+              
+              // Calculate 170s (big fish) - scores >= 170 but < 180
+              const winner170s = calculate170sForPlayer(winnerData.id, turns.value)
+              const loser170s = calculate170sForPlayer(loserData.id, turns.value)
+              
+              // Calculate bull checkouts from leg data
+              const winnerBullCheckouts = calculateBullCheckoutsForPlayer(winnerData.id)
+              const loserBullCheckouts = calculateBullCheckoutsForPlayer(loserData.id)
+              
+              const tournamentResultData = {
+                winnerId: winnerPlayerId,
+                loserId: loserData.id,
+                winnerLegs: winnerData.legs || 0,
+                loserLegs: loserData.legs || 0,
+                winnerSets: winnerData.sets || 0,
+                loserSets: loserData.sets || 0,
+                winner180s,
+                loser180s,
+                winner170s,
+                loser170s,
+                winnerBullCheckouts,
+                loserBullCheckouts
+              };
+              
+              console.log('🏆 Calling updateTournamentGameResult with full data:', JSON.stringify(tournamentResultData, null, 2))
+              console.log('🏆 Game ID:', gameId.value)
+              console.log('🏆 Tournament ID:', currentGame.value.tournamentId)
+              
+              try {
+                await updateTournamentGameResult(gameId.value, tournamentResultData)
+                console.log('✅ Tournament updateTournamentGameResult call succeeded')
+              } catch (updateError) {
+                console.error('❌ Error in updateTournamentGameResult call:', updateError)
+                throw updateError
+              }
+              
+              console.log('✅ Tournament update completed successfully')
+            }
+          } catch (tournamentError) {
+            console.error('❌ Error updating tournament result:', tournamentError)
+            console.error('❌ Tournament error stack:', tournamentError instanceof Error ? tournamentError.stack : 'No stack trace')
+            console.error('❌ Tournament error message:', tournamentError instanceof Error ? tournamentError.message : 'Unknown error')
+            
+            // Try to log more details about the tournament
+            try {
+              const { getTournament } = useTournament()
+              const tournamentId = currentGame.value?.tournamentId
+              if (tournamentId) {
+                console.log('📊 Attempting to fetch tournament data for ID:', tournamentId)
+                const tournamentData = await getTournament(tournamentId)
+                if (tournamentData) {
+                  console.log('📊 Current tournament state (summary):')
+                  console.log('- ID:', tournamentData.id)
+                  console.log('- Status:', tournamentData.status)
+                  console.log('- Mode:', tournamentData.mode)
+                  console.log('- Current Round:', tournamentData.currentRound || 'N/A')
+                  console.log('- Game Type:', tournamentData.gameType)
+                  console.log('- Games count:', Object.keys(tournamentData.games || {}).length)
+                  
+                  // Log specifically about this game in the tournament
+                  const currentGameId = gameId.value
+                  if (currentGameId && tournamentData.games) {
+                    const gameInTournament = tournamentData.games[currentGameId as keyof typeof tournamentData.games]
+                    console.log('📊 This game in tournament:', gameInTournament || 'Not found')
+                  }
+                } else {
+                  console.error('❌ Tournament not found')
+                }
+              } else {
+                console.error('❌ No tournament ID found in game data')
+              }
+            } catch (err) {
+              console.error('❌ Failed to get tournament details:', err)
+              console.error('❌ Tournament fetch error stack:', err instanceof Error ? err.stack : 'No stack trace')
+            }
+            
+            // Don't let tournament update failures prevent game completion
+            console.log('⚠️ Continuing with game completion despite tournament update failure')
           }
         }
       }
@@ -1300,6 +1511,45 @@ export const useFirebaseDartsGame = () => {
         }
       }
 
+      // If this is a tournament game, update tournament results
+      if (gameData.tournamentId && winner) {
+        try {
+          const { updateTournamentGameResult } = useTournament()
+          
+          // Find the winner and loser data
+          const winnerData = playersToUpdate.find((p: any) => p.id === winner)
+          const loserData = playersToUpdate.find((p: any) => p.id === userId) // abandoner is the loser
+          
+          if (winnerData && loserData) {
+            // Calculate bonus stats (likely minimal for abandoned games)
+            const winner180s = calculate180sForPlayer(winnerData.id, turns.value)
+            const loser180s = calculate180sForPlayer(loserData.id, turns.value)
+            const winner170s = calculate170sForPlayer(winnerData.id, turns.value)
+            const loser170s = calculate170sForPlayer(loserData.id, turns.value)
+            const winnerBullCheckouts = calculateBullCheckoutsForPlayer(winnerData.id)
+            const loserBullCheckouts = calculateBullCheckoutsForPlayer(loserData.id)
+            
+            await updateTournamentGameResult(gameId, {
+              winnerId: winner,
+              loserId: userId,
+              winnerLegs: winnerData.legs || 0,
+              loserLegs: loserData.legs || 0,
+              winnerSets: winnerData.sets || gameData.setsToWin, // Winner gets full sets
+              loserSets: loserData.sets || 0,
+              winner180s,
+              loser180s,
+              winner170s,
+              loser170s,
+              winnerBullCheckouts,
+              loserBullCheckouts
+            })
+          }
+        } catch (tournamentError) {
+          console.error('Error updating tournament result for abandoned game:', tournamentError)
+          // Don't let tournament update failures prevent game abandonment
+        }
+      }
+
       // If this is the current game, update its status locally
       if (currentGame.value && currentGame.value.id === gameId) {
         currentGame.value.status = 'finished'
@@ -1348,6 +1598,43 @@ export const useFirebaseDartsGame = () => {
     return count180s
   }
 
+  // Helper function to calculate number of 170s (big fish) for a player from turns data
+  const calculate170sForPlayer = (playerId: string, turnsData: Turn[]): number => {
+    let count170s = 0
+    
+    // Filter turns for this player and check each turn's score
+    const playerTurns = turnsData.filter(turn => turn.playerId === playerId)
+    
+    for (const turn of playerTurns) {
+      // A 170+ is a high checkout (170-179 range, excluding 180 which is counted separately)
+      if (turn.score >= 170 && turn.score < 180) {
+        count170s++
+      }
+    }
+    
+    return count170s
+  }
+
+  // Helper function to calculate bull checkouts for a player
+  const calculateBullCheckoutsForPlayer = (playerId: string): number => {
+    let bullCheckouts = 0
+    
+    // Look through all legs for bull checkout data
+    if (currentGame.value?.legsData) {
+      for (const legKey in currentGame.value.legsData) {
+        const legData = currentGame.value.legsData[legKey]
+        const playerLegStats = legData.playerStats?.[playerId]
+        
+        // Check if player successfully checked out with score 50 (bull)
+        if (playerLegStats && playerLegStats.checkoutSuccess && playerLegStats.checkoutScore === 50) {
+          bullCheckouts++
+        }
+      }
+    }
+    
+    return bullCheckouts
+  }
+
   // Return all the reactive properties and methods
   return {
     // Reactive state
@@ -1366,6 +1653,7 @@ export const useFirebaseDartsGame = () => {
     // Methods
     createGame,
     joinGame,
+    joinGameById,
     startGame,
     recordThrow,
     leaveGame,

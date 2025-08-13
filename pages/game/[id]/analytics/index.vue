@@ -1,8 +1,34 @@
 <template>
     <div class="max-w-6xl mx-auto px-4 py-6">
         <div class="bg-white shadow-md rounded-lg p-6 mb-6">
-            <!-- TODO Translate -->
-            <h1 class="text-2xl font-bold mb-4">Game Analytics</h1>
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                <div>
+                    <!-- TODO Translate -->
+                    <h1 class="text-2xl font-bold mb-2">Game Analytics</h1>
+                    <div v-if="tournamentId" class="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block">
+                        <!-- TODO Translate -->
+                        Tournament Game
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button 
+                        v-if="tournamentId"
+                        @click="navigateToTournament"
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm"
+                    >
+                        <!-- TODO Translate -->
+                        Return to Tournament
+                    </button>
+                    <button 
+                        @click="navigateToGames"
+                        class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-sm"
+                    >
+                        <!-- TODO Translate -->
+                        Back to Games
+                    </button>
+                </div>
+            </div>
             
             <div v-if="currentGame" class="space-y-4">
                 <!-- Game Info Row -->
@@ -99,6 +125,11 @@ const toast = useNotificationStore()
 // Get the game ID from the route params
 const gameId = computed(() => route.params.id as string)
 
+// Get tournament ID from current game
+const tournamentId = computed(() => {
+    return currentGame.value?.tournamentId || null
+})
+
 // Firebase darts game service
 const { 
     currentGame,
@@ -133,6 +164,17 @@ const navigateBackToGame = () => {
 const navigateToHome = () => {
     isNavigatingAway.value = true
     router.push('/')
+}
+
+// Navigation methods
+const navigateToTournament = () => {
+    if (tournamentId.value) {
+        navigateTo(`/tournament/${tournamentId.value}`)
+    }
+}
+
+const navigateToGames = () => {
+    navigateTo('/')
 }
 
 // Additional computed properties for the enhanced header

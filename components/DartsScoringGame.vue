@@ -386,6 +386,7 @@
         :set-number="completedSetNumber || currentGame?.currentSet || 1"
         :winner-id="legWinner || currentGame?.winner || ''"
         :players="currentGame?.players || []"
+        :tournament-id="tournamentId"
         @close="handleTransitionModalClose"
     />
 
@@ -427,6 +428,11 @@ const {
 } = useFirebaseDartsGame()
 const toast = useNotificationStore()
 const authStore = useAuthStore()
+
+// Get tournament ID from current game
+const tournamentId = computed(() => {
+    return currentGame.value?.tournamentId || undefined
+})
 
 // Local state
 const inputMethod = ref<'total' | 'individual'>('individual')

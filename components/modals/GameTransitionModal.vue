@@ -64,7 +64,10 @@
               <!-- Score details -->
               <div class="mt-2 grid grid-cols-3 gap-2 text-sm">
                 <div class="bg-white dark:bg-gray-800 p-2 rounded text-center shadow-sm">
-                  <div class="font-medium text-gray-800 dark:text-white">{{ player.currentScore }}</div>
+                  <!-- Display 0 for the winner, or actual score for others -->
+                  <div class="font-medium text-gray-800 dark:text-white">
+                    {{ player.id === winnerId ? 0 : player.currentScore }}
+                  </div>
                   <div class="text-xs text-gray-600 dark:text-gray-300">Remaining</div>
                 </div>
                 <div class="bg-white dark:bg-gray-800 p-2 rounded text-center shadow-sm">
@@ -79,16 +82,39 @@
             </div>
           </div>
 
-          <!-- Button to skip countdown -->
-          <div class="mt-6 text-center">
-            <button 
-              @click="handleClose"
-              class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-base font-medium touch-manipulation shadow-md"
-              style="min-height: 48px;"
-            >
-              <!-- TODO: Translate -->
-              {{ isGameWin ? 'View Detailed Analytics' : isSetWin ? 'Continue to Next Set' : 'Continue to Next Leg' }}
-            </button>
+          <!-- Buttons -->
+          <div class="mt-6">
+            <!-- Tournament Game - Show two buttons -->
+            <div v-if="isGameWin && isTournamentGame" class="flex flex-col sm:flex-row gap-3">
+              <button 
+                @click="goToAnalytics"
+                class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-base font-medium touch-manipulation shadow-md"
+                style="min-height: 48px;"
+              >
+                <!-- TODO: Translate -->
+                View Analytics
+              </button>
+              <button 
+                @click="returnToTournament"
+                class="flex-1 px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-base font-medium touch-manipulation shadow-md"
+                style="min-height: 48px;"
+              >
+                <!-- TODO: Translate -->
+                Return to Tournament
+              </button>
+            </div>
+            
+            <!-- Regular Game - Single button -->
+            <div v-else class="text-center">
+              <button 
+                @click="handleClose"
+                class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-base font-medium touch-manipulation shadow-md"
+                style="min-height: 48px;"
+              >
+                <!-- TODO: Translate -->
+                {{ isGameWin ? 'View Detailed Analytics' : isSetWin ? 'Continue to Next Set' : 'Continue to Next Leg' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -109,6 +135,7 @@ interface Props {
   winnerId: string
   players: Player[]
   autoCloseDelay?: number
+  tournamentId?: string // If present, this is a tournament game
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -131,6 +158,11 @@ const winnerName = computed(() => {
   return winner ? winner.name : 'Unknown Player'
 })
 
+// Check if this is a tournament game
+const isTournamentGame = computed(() => {
+  return !!props.tournamentId
+})
+
 // Handle closing the modal
 const handleClose = () => {
   if (countdownTimer) {
@@ -138,14 +170,49 @@ const handleClose = () => {
     countdownTimer = null
   }
   
-  // If this is a game win, navigate to analytics
+  // For tournament games, don't auto-navigate - let user choose
+  if (props.isGameWin && isTournamentGame.value) {
+    emit('close')
+    return
+  }
+  
+  // For regular games, navigate to analytics on game win
   if (props.isGameWin) {
-    // Get the game ID from the current route
     const route = useRoute()
     const gameId = route.params.id
     if (gameId) {
       navigateTo(`/game/${gameId}/analytics`)
     }
+  }
+  
+  emit('close')
+}
+
+// Handle navigation to analytics
+const goToAnalytics = () => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+  
+  const route = useRoute()
+  const gameId = route.params.id
+  if (gameId) {
+    navigateTo(`/game/${gameId}/analytics`)
+  }
+  
+  emit('close')
+}
+
+// Handle navigation back to tournament
+const returnToTournament = () => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+  
+  if (props.tournamentId) {
+    navigateTo(`/tournament/${props.tournamentId}`)
   }
   
   emit('close')
