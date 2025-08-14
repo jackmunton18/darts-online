@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg shadow-md p-6">
+  <div class="panel-dark p-6">
     <h3 class="text-2xl font-bold mb-6">Game Analytics</h3>
     
     <!-- Game Result Banner (if finished) -->

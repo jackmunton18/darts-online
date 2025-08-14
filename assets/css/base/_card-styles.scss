@@ -1,0 +1,93 @@
+/* Card Styles for dark theme */
+.card-dark {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-left: 3px solid var(--dart-green);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+.panel-dark {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-primary);
+}
+
+.input-dark {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    &:focus {
+        border-color: var(--dart-green);
+        box-shadow: 0 0 0 2px rgba(1, 172, 90, 0.2);
+    }
+}
+
+.modal-dark {
+    background-color: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+.table-row-dark {
+    background-color: var(--bg-secondary);
+    &:hover {
+        background-color: var(--bg-tertiary);
+    }
+}
+
+.table-header-dark {
+    background-color: var(--bg-table-header);
+    color: var(--text-secondary);
+}
+
+.bg-dark-primary {
+    background-color: var(--bg-primary);
+}
+
+.bg-dark-secondary {
+    background-color: var(--bg-secondary);
+}
+
+.bg-dark-tertiary {
+    background-color: var(--bg-tertiary);
+}
+
+/* Info Box Styles for dark theme */
+.info-box-dark {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+}
+
+.info-box-dark.blue {
+    border-left: 3px solid var(--dart-blue);
+    
+    h3 {
+        color: var(--text-info);
+    }
+    
+    p {
+        color: var(--text-secondary);
+    }
+}
+
+.info-box-dark.green {
+    border-left: 3px solid var(--dart-green);
+    
+    h3 {
+        color: var(--text-success);
+    }
+    
+    p {
+        color: var(--text-secondary);
+    }
+}

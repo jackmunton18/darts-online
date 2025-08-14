@@ -1,9 +1,9 @@
 <template>
     <div class="max-w-6xl mx-auto px-4 py-6">
-        <div class="bg-white shadow-md rounded-lg p-4 mb-6">
+        <div class="card-dark p-4 mb-6">
             <!-- TODO Translate -->
             <h1 class="text-2xl font-bold mb-4">Darts Games</h1>
-            <p class="text-gray-700 mb-2">
+            <p class="text-secondary mb-2">
                 <!-- TODO Translate -->
                 Create a game session or join an existing one with a game code. Track scores in real-time and compete with friends!
             </p>
@@ -31,19 +31,19 @@
                 Tournament Mode
             </button>
             <!-- Quick Actions -->
-            <!-- <div class="bg-white rounded-lg shadow-md p-4 md:p-6">
+            <!-- <div class="panel-dark p-4 md:p-6">
                 <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
                 
                 <div class="space-y-4">
                     
-                    <div class="text-center text-sm text-gray-500">
+                    <div class="text-center text-sm text-muted">
                         Start a new match or join with a game code
                     </div>
                 </div>
             </div> -->
 
             <!-- Active Games List -->
-            <div class="bg-white rounded-lg shadow-md p-4 md:p-6 max-h-[600px] home-panels overflow-auto">
+            <div class="panel-dark p-4 md:p-6 max-h-[600px] home-panels overflow-auto">
                 <!-- TODO Translate -->
                 <h3 class="text-lg font-semibold mb-4">My Active Games</h3>
 

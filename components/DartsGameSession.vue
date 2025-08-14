@@ -1,159 +1,177 @@
 <template>
-    <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="">
         <div v-if="(!currentGame || currentGame.status === 'finished') && !inGamePage">
-            <!-- TODO Translate -->
-            <h3 class="text-lg font-semibold mb-4">Create or Join a Game</h3>
-            
-            <!-- Tab Navigation -->
-            <div class="border-b border-gray-200 mb-6">
-                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                    <button
-                        @click="activeTab = 'create'"
-                        :class="[
-                            'py-2 px-1 border-b-2 font-medium text-sm touch-manipulation transition-colors duration-200',
-                            activeTab === 'create'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        ]"
-                        style="min-height: 48px;"
-                    >
-                        <!-- TODO Translate -->
-                        Create Game
-                    </button>
-                    <button
-                        @click="activeTab = 'join'"
-                        :class="[
-                            'py-2 px-1 border-b-2 font-medium text-sm touch-manipulation transition-colors duration-200',
-                            activeTab === 'join'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                        ]"
-                        style="min-height: 48px;"
-                    >
-                        <!-- TODO Translate -->
-                        Join Game
-                    </button>
-                </nav>
-            </div>
-            
-            <!-- Create Game Form -->
-            <div v-if="activeTab === 'create'" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <!-- TODO Translate -->
-                        Game Type
-                    </label>
-                    <select
-                        v-model="gameConfig.gameType"
-                        class="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                        style="min-height: 48px;"
-                    >
-                        <option value="501">501</option>
-                        <option value="301">301</option>
-                        <option value="101">101</option>
-                        <option value="cricket">Cricket</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <!-- TODO Translate -->
-                        Starting Score
-                    </label>
-                    <input
-                        v-model.number="gameConfig.startingScore"
-                        type="number"
-                        class="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                        style="min-height: 48px;"
-                    />
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <!-- TODO Translate -->
-                        Legs to Win Set
-                    </label>
-                    <input
-                        v-model.number="gameConfig.legsToWin"
-                        type="number"
-                        min="1"
-                        max="10"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    />
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <!-- TODO Translate -->
-                        Sets to Win Match
-                    </label>
-                    <input
-                        v-model.number="gameConfig.setsToWin"
-                        type="number"
-                        min="1"
-                        max="10"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    />
-                </div>
-                
-                <button
-                    @click="handleCreateGame"
-                    :disabled="isLoading"
-                    class="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-base font-medium touch-manipulation"
-                    style="min-height: 52px;"
-                >
+            <!-- Action Cards - Side by Side Layout like Tournament Page -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Create Game Card -->
+                <div class="panel-dark shadow-md p-6">
                     <!-- TODO Translate -->
-                    {{ isLoading ? 'Creating...' : 'Create Game' }}
-                </button>
-            </div>
-            
-            <!-- Join Game Form -->
-            <div v-if="activeTab === 'join'" class="space-y-4">
-                <div>
-                    <input
-                        v-model="gameCode"
-                        type="text"
-                        maxlength="6"
-                        class="w-full px-3 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase bg-white placeholder:capitalize"
-                        style="min-height: 48px;"
-                        placeholder="Enter 6-character game code"
-                    />
+                    <h2 class="text-xl font-bold mb-4">Create Game</h2>
+                    <p class="text-secondary mb-4">
+                        <!-- TODO Translate -->
+                        Start a new darts match with custom settings
+                    </p>
+                    <button 
+                        @click="showCreateModal = true"
+                        class="w-full btn-primary py-3 px-6 rounded-md font-medium"
+                        style="min-height: 52px;"
+                    >
+                        <!-- TODO Translate -->
+                        Create New Game
+                    </button>
                 </div>
                 
-                <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                    <button
-                        @click="handleJoinGame('player')"
-                        :disabled="isLoading || !gameCode"
-                        class="flex-1 bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-base font-medium touch-manipulation"
-                        style="min-height: 52px;"
-                    >
+                <!-- Join Game Card -->
+                <div class="panel-dark shadow-md p-6">
+                    <!-- TODO Translate -->
+                    <h2 class="text-xl font-bold mb-4">Join Game</h2>
+                    <p class="text-secondary mb-4">
                         <!-- TODO Translate -->
-                        {{ isLoading ? 'Joining...' : 'Join as Player' }}
-                    </button>
-                    <button
-                        @click="handleJoinGame('spectator')"
-                        :disabled="isLoading || !gameCode"
-                        class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-base font-medium touch-manipulation"
-                        style="min-height: 52px;"
-                    >
+                        Enter a game code to join an existing match
+                    </p>
+                    
+                    <div class="space-y-4">
+                        <input
+                            v-model="gameCode"
+                            type="text"
+                            maxlength="6"
+                            class="input-dark w-full px-3 py-3 text-base rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 uppercase placeholder:text-text-muted"
+                            style="min-height: 48px;"
+                            placeholder="Enter 6-character game code"
+                            @input="gameCode = gameCode.toUpperCase().slice(0, 6)"
+                        />
+                        
+                        <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                            <button
+                                @click="handleJoinGame('player')"
+                                :disabled="isLoading || !gameCode || gameCode.length !== 6"
+                                class="flex-1 btn-success py-3 px-4 rounded-md disabled:bg-button-disabled disabled:text-disabled disabled:cursor-not-allowed text-base font-medium touch-manipulation"
+                                style="min-height: 52px;"
+                            >
+                                <!-- TODO Translate -->
+                                {{ isLoading ? 'Joining...' : 'Join as Player' }}
+                            </button>
+                            <button
+                                @click="handleJoinGame('spectator')"
+                                :disabled="isLoading || !gameCode || gameCode.length !== 6"
+                                class="flex-1 btn-secondary py-3 px-4 rounded-md disabled:bg-button-disabled disabled:text-disabled disabled:cursor-not-allowed text-base font-medium touch-manipulation"
+                                style="min-height: 52px;"
+                            >
+                                <!-- TODO Translate -->
+                                {{ isLoading ? 'Joining...' : 'Spectate' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Create Game Modal -->
+            <div v-if="showCreateModal" class="fixed inset-0 flex items-center justify-center z-50 p-4">
+                <div class="absolute inset-0 bg-black bg-opacity-50" @click="showCreateModal = false"></div>
+                <div class="modal-dark rounded-lg shadow-xl w-full max-w-2xl relative z-10 max-h-screen overflow-y-auto">
+                    <div class="p-6">
                         <!-- TODO Translate -->
-                        {{ isLoading ? 'Joining...' : 'Spectate' }}
-                    </button>
+                        <h3 class="text-xl font-semibold mb-6">Create New Game</h3>
+                        
+                        <form @submit.prevent="handleCreateGame" class="space-y-6">
+                            <!-- Game Settings -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">
+                                        <!-- TODO Translate -->
+                                        Game Type
+                                    </label>
+                                    <select
+                                        v-model="gameConfig.gameType"
+                                        class="input-dark w-full px-3 py-3 text-base rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        style="min-height: 48px;"
+                                    >
+                                        <option value="501">501</option>
+                                        <option value="301">301</option>
+                                        <option value="101">101</option>
+                                        <option value="cricket">Cricket</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">
+                                        <!-- TODO Translate -->
+                                        Starting Score
+                                    </label>
+                                    <input
+                                        v-model.number="gameConfig.startingScore"
+                                        type="number"
+                                        class="input-dark w-full px-3 py-3 text-base rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        style="min-height: 48px;"
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">
+                                        <!-- TODO Translate -->
+                                        Legs to Win Set
+                                    </label>
+                                    <input
+                                        v-model.number="gameConfig.legsToWin"
+                                        type="number"
+                                        min="1"
+                                        max="10"
+                                        class="input-dark w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">
+                                        <!-- TODO Translate -->
+                                        Sets to Win Match
+                                    </label>
+                                    <input
+                                        v-model.number="gameConfig.setsToWin"
+                                        type="number"
+                                        min="1"
+                                        max="10"
+                                        class="input-dark w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <!-- Modal Actions -->
+                            <div class="flex space-x-4 pt-6 border-t border-border-primary">
+                                <button
+                                    type="button"
+                                    @click="showCreateModal = false"
+                                    class="flex-1 btn-secondary py-2 px-4 rounded-md"
+                                    :disabled="isLoading"
+                                >
+                                    <!-- TODO Translate -->
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    class="flex-1 btn-success py-2 px-4 rounded-md"
+                                    :disabled="isLoading"
+                                >
+                                    <!-- TODO Translate -->
+                                    {{ isLoading ? 'Creating...' : 'Create Game' }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
         
         <!-- Game Lobby -->
-        <div v-else-if="currentGame && currentGame.status === 'waiting'" class="mb-6">
+        <div v-else-if="currentGame && currentGame.status === 'waiting'" class="panel-dark p-6 rounded-lg mb-6">
             <!-- TODO Translate -->
             <h3 class="text-lg font-semibold mb-4">Game Lobby</h3>
             
-            <div class="bg-gray-100 p-4 rounded-lg mb-4 flex justify-between items-center">
+            <div class="bg-dark-secondary p-4 rounded-lg mb-4 flex justify-between items-center border border-border-primary">
                 <!-- TODO Translate -->
-                <div class="font-medium">Game Code: <span class="text-blue-600 font-bold">{{ currentGame.gameCode }}</span></div>
+                <div class="font-medium">Game Code: <span class="font-bold tracking-wider text-accent">{{ currentGame.gameCode }}</span></div>
                 <button 
                     @click="copyGameCode" 
-                    class="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded"
+                    class="btn-secondary text-sm px-3 py-1 rounded"
                 >
                     <!-- TODO Translate -->
                     Copy
@@ -163,10 +181,10 @@
             <div class="mb-4">
                 <!-- TODO Translate -->
                 <h4 class="text-md font-medium mb-2">Players</h4>
-                <ul class="bg-gray-50 rounded-lg divide-y divide-gray-200">
+                <ul class="bg-dark-secondary rounded-lg border border-border-primary divide-y divide-border-primary">
                     <li v-for="player in currentGame.players" :key="player.id" class="p-3 flex items-center">
                         <span class="flex-1">{{ player.name }}</span>
-                        <span v-if="player.id === currentGame.hostId" class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                        <span v-if="player.id === currentGame.hostId" class="bg-success bg-opacity-20 text-success px-2 py-1 text-xs rounded">
                             <!-- TODO Translate -->
                             Host
                         </span>
@@ -177,7 +195,7 @@
             <div class="mb-4" v-if="currentGame.spectators.length > 0">
                 <!-- TODO Translate -->
                 <h4 class="text-md font-medium mb-2">Spectators</h4>
-                <div class="text-gray-600">{{ currentGame.spectators.length }} watching</div>
+                <div class="text-secondary">{{ currentGame.spectators.length }} watching</div>
             </div>
             
             <div class="flex space-x-4">
@@ -185,7 +203,7 @@
                     v-if="isHost"
                     @click="handleStartGame"
                     :disabled="isLoading || currentGame.players.length < 1"
-                    class="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    class="flex-1 btn-success py-2 px-4 rounded-md disabled:bg-button-disabled disabled:text-disabled disabled:cursor-not-allowed"
                 >
                     <!-- TODO Translate -->
                     {{ isLoading ? 'Starting...' : 'Start Game' }}
@@ -193,7 +211,7 @@
                 <button
                     @click="handleLeaveGame"
                     :disabled="isLoading"
-                    class="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    class="flex-1 btn-danger py-2 px-4 rounded-md disabled:bg-button-disabled disabled:text-disabled disabled:cursor-not-allowed"
                 >
                     <!-- TODO Translate -->
                     {{ isLoading ? 'Leaving...' : 'Leave Game' }}
@@ -202,12 +220,12 @@
         </div>
         
         <!-- Active Game -->
-        <div v-else-if="currentGame && currentGame.status === 'playing'" class="mb-6">
+        <div v-else-if="currentGame && currentGame.status === 'playing'" class="panel-dark p-6 rounded-lg mb-6">
             <div class="flex justify-between items-center mb-4">
                 <div>
                     <!-- TODO Translate -->
                     <h3 class="text-lg font-semibold">Active Game</h3>
-                    <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                    <span class="text-xs px-2 py-1 bg-success bg-opacity-20 text-success rounded-full">
                         <!-- TODO Translate -->
                         {{ isCurrentUserPlaying ? 'Playing' : 'Spectating' }}
                     </span>
@@ -215,14 +233,14 @@
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="bg-dark-secondary p-4 rounded-lg border border-border-primary">
                     <!-- TODO Translate -->
-                    <div class="text-sm text-gray-500 mb-1">Current Leg</div>
+                    <div class="text-sm text-secondary mb-1">Current Leg</div>
                     <div class="text-lg font-semibold">{{ currentGame.currentLeg }}</div>
                 </div>
-                <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="bg-dark-secondary p-4 rounded-lg border border-border-primary">
                     <!-- TODO Translate -->
-                    <div class="text-sm text-gray-500 mb-1">Current Set</div>
+                    <div class="text-sm text-secondary mb-1">Current Set</div>
                     <div class="text-lg font-semibold">{{ currentGame.currentSet }}</div>
                 </div>
             </div>
@@ -231,20 +249,20 @@
             <div class="mb-4">
                 <!-- TODO Translate -->
                 <h4 class="text-md font-medium mb-2">Players</h4>
-                <ul class="bg-gray-50 rounded-lg divide-y divide-gray-200">
+                <ul class="bg-dark-secondary rounded-lg divide-y divide-border-primary border border-border-primary">
                     <li 
                         v-for="(player, index) in currentGame.players" 
                         :key="player.id" 
                         :class="[
                             'p-3',
-                            index === currentGame.currentPlayerIndex ? 'bg-yellow-50 border border-yellow-300 rounded' : ''
+                            index === currentGame.currentPlayerIndex ? 'bg-warning bg-opacity-10 border border-warning rounded' : ''
                         ]"
                     >
                         <div class="flex justify-between mb-1">
                             <span class="font-medium">{{ player.name }}</span>
                             <span class="text-lg font-bold">{{ player.currentScore }}</span>
                         </div>
-                        <div class="flex justify-between text-xs text-gray-500">
+                        <div class="flex justify-between text-xs text-secondary">
                             <span>Sets: {{ player.sets }}/{{ currentGame.setsToWin }}</span>
                             <span>Legs: {{ player.legs }}/{{ currentGame.legsToWin }}</span>
                             <span>Avg: {{ player.averagePerTurn.toFixed(1) }}</span>
@@ -258,13 +276,13 @@
                 <!-- TODO Translate -->
                 <h4 class="text-md font-medium mb-2">Current Turn: {{ currentPlayer.name }}</h4>
                 
-                <div v-if="isCurrentPlayerTurn && isCurrentUserPlaying" class="bg-green-50 p-4 rounded-lg border border-green-200">
+                <div v-if="isCurrentPlayerTurn && isCurrentUserPlaying" class="bg-success bg-opacity-10 p-4 rounded-lg border border-success">
                     <!-- TODO Translate -->
-                    <div class="text-center text-green-800 mb-2">Your Turn!</div>
+                    <div class="text-center text-success mb-2">Your Turn!</div>
                     
                     <!-- Checkout suggestions if score is <= 170 -->
                     <div v-if="currentPlayer.currentScore <= 170" class="mb-4">
-                        <div class="text-sm font-medium text-gray-700 mb-2">
+                        <div class="text-sm font-medium mb-2">
                             <!-- TODO Translate -->
                             Checkout Suggestions
                         </div>
@@ -272,11 +290,11 @@
                             <div 
                                 v-for="(suggestion, i) in checkoutSuggestions" 
                                 :key="i"
-                                class="px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm"
+                                class="px-3 py-1 bg-info bg-opacity-20 text-info rounded text-sm"
                             >
                                 {{ suggestion.join(' → ') }}
                             </div>
-                            <div v-if="checkoutSuggestions.length === 0" class="text-sm text-gray-500">
+                            <div v-if="checkoutSuggestions.length === 0" class="text-sm text-secondary">
                                 <!-- TODO Translate -->
                                 No checkout available
                             </div>
@@ -288,7 +306,7 @@
             <!-- Leave Game Button -->
             <button
                 @click="handleLeaveGame"
-                class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700"
+                class="w-full btn-danger py-2 px-4 rounded-md"
             >
                 <!-- TODO Translate -->
                 Leave Game
@@ -296,20 +314,20 @@
         </div>
         
         <!-- Active Game on Home Page (return to game option) -->
-        <div v-else-if="currentGame && currentGame.status === 'playing' && !inGamePage" class="mb-6 max-h-96 overflow-y-auto">
+        <div v-else-if="currentGame && currentGame.status === 'playing' && !inGamePage" class="panel-dark p-6 rounded-lg mb-6 max-h-96 overflow-y-auto">
             <!-- TODO Translate -->
             <h3 class="text-lg font-semibold mb-4">Active Game in Progress</h3>
             
-            <div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
+            <div class="bg-info bg-opacity-10 p-4 rounded-lg mb-4 border border-info">
                 <div class="flex justify-between items-center mb-2">
                     <!-- TODO Translate -->
-                    <div class="font-medium">Game Code: <span class="text-blue-600 font-bold">{{ currentGame.gameCode }}</span></div>
-                    <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                    <div class="font-medium">Game Code: <span class="text-info font-bold">{{ currentGame.gameCode }}</span></div>
+                    <span class="text-xs px-2 py-1 bg-info bg-opacity-20 text-info rounded">
                         <!-- TODO Translate -->
                         In Progress
                     </span>
                 </div>
-                <div class="text-sm text-gray-600">
+                <div class="text-sm text-secondary">
                     <!-- TODO Translate -->
                     Set {{ currentGame.currentSet }} • Leg {{ currentGame.currentLeg }}
                 </div>
@@ -320,13 +338,13 @@
                 <!-- TODO Translate -->
                 <h4 class="text-md font-medium mb-2">Players</h4>
                 <div class="max-h-32 overflow-y-auto">
-                    <ul class="bg-gray-50 rounded-lg divide-y divide-gray-200">
+                    <ul class="bg-dark-secondary rounded-lg divide-y divide-border-primary border border-border-primary">
                         <li v-for="player in currentGame.players" :key="player.id" class="p-3">
                             <div class="flex justify-between items-center">
                                 <span class="font-medium">{{ player.name }}</span>
                                 <span class="text-lg font-bold">{{ player.currentScore }}</span>
                             </div>
-                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <div class="flex justify-between text-xs text-secondary mt-1">
                                 <span>Sets: {{ player.sets }}/{{ currentGame.setsToWin }}</span>
                                 <span>Legs: {{ player.legs }}/{{ currentGame.legsToWin }}</span>
                             </div>
@@ -338,7 +356,7 @@
             <div class="flex space-x-4">
                 <button
                     @click="returnToGame"
-                    class="flex-1 bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 text-base font-medium touch-manipulation"
+                    class="flex-1 btn-success py-3 px-4 rounded-md text-base font-medium touch-manipulation"
                     style="min-height: 52px;"
                 >
                     <!-- TODO Translate -->
@@ -346,7 +364,7 @@
                 </button>
                 <button
                     @click="handleLeaveGame"
-                    class="flex-1 bg-red-600 text-white py-3 px-4 rounded-md hover:bg-red-700 text-base font-medium touch-manipulation"
+                    class="flex-1 btn-danger py-3 px-4 rounded-md text-base font-medium touch-manipulation"
                     style="min-height: 52px;"
                 >
                     <!-- TODO Translate -->
@@ -356,15 +374,15 @@
         </div>
         
         <!-- Finished Game (only show on game page, not home page) -->
-        <div v-else-if="currentGame && currentGame.status === 'finished' && inGamePage" class="mb-6 max-h-96 overflow-y-auto">
+        <div v-else-if="currentGame && currentGame.status === 'finished' && inGamePage" class="panel-dark p-6 rounded-lg mb-6 max-h-96 overflow-y-auto">
             <!-- TODO Translate -->
             <h3 class="text-lg font-semibold mb-4">Game Finished</h3>
             
             <!-- Winner -->
-            <div class="bg-yellow-50 p-4 rounded-lg mb-6">
+            <div class="bg-warning bg-opacity-10 p-4 rounded-lg mb-6 border border-warning">
                 <!-- TODO Translate -->
                 <h4 class="text-md font-medium mb-2">Winner</h4>
-                <div class="text-xl font-bold text-center py-2">
+                <div class="text-xl font-bold text-center py-2 text-warning">
                     {{ getWinner?.name || 'Unknown' }}
                 </div>
             </div>
@@ -376,18 +394,18 @@
                 
                 <div class="max-h-48 overflow-y-auto">
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50 sticky top-0">
+                        <table class="min-w-full divide-y divide-border-primary">
+                            <thead class="bg-dark-tertiary sticky top-0">
                                 <tr>
                                     <!-- TODO Translate -->
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Player</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Average</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">High Score</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">High Checkout</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">100+</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-secondary uppercase tracking-wider">Player</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-secondary uppercase tracking-wider">Average</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-secondary uppercase tracking-wider">High Score</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-secondary uppercase tracking-wider">High Checkout</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-secondary uppercase tracking-wider">100+</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tbody class="bg-dark-secondary divide-y divide-border-primary">
                                 <tr v-for="player in currentGame.players" :key="player.id">
                                     <td class="px-4 py-2 whitespace-nowrap">{{ player.name }}</td>
                                     <td class="px-4 py-2 whitespace-nowrap">{{ (player.averagePerTurn || 0).toFixed(1) }}</td>
@@ -403,7 +421,7 @@
             
             <button
                 @click="handleLeaveGame"
-                class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+                class="w-full btn-primary py-2 px-4 rounded-md"
             >
                 <!-- TODO Translate -->
                 Exit to Lobby
@@ -428,7 +446,7 @@ const route = useRoute()
 const inGamePage = computed(() => route.path.includes('/game/'))
 
 // Reactive state
-const activeTab = ref('create')
+const showCreateModal = ref(false)
 const gameCode = ref('')
 const isLoading = ref(false)
 
@@ -503,6 +521,9 @@ const handleCreateGame = async () => {
             })
         } else if (result.gameId) {
             // Game is created, saveGameSession will be called by the composable
+            
+            // Close the modal
+            showCreateModal.value = false
             
             // Navigate to the game page
             await navigateTo(`/game/${result.gameId}`)

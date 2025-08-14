@@ -1,7 +1,7 @@
 <template>
     <div class="max-w-6xl mx-auto px-4 py-6">
         <!-- Header Section -->
-        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+        <div class="panel-dark shadow-md rounded-lg p-6 mb-6">
             <!-- TODO Translate -->
             <h1 class="text-3xl font-bold mb-4">Tournaments</h1>
             <p class="text-gray-700 mb-4">
@@ -12,19 +12,19 @@
             
             <!-- Tournament Mode Description -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                <div class="bg-blue-50 p-4 rounded-lg">
+                <div class="info-box-dark blue">
                     <!-- TODO Translate -->
-                    <h3 class="text-lg font-semibold text-blue-800 mb-2">🏆 Bracket Mode</h3>
-                    <p class="text-blue-700 text-sm">
+                    <h3 class="text-lg font-semibold mb-2">🏆 Bracket Mode</h3>
+                    <p class="text-sm">
                         <!-- TODO Translate -->
                         Classic knockout tournament. Win or go home! Semi-finals, finals, and optional third-place playoff.
                         Perfect for 4, 8, or 16 players.
                     </p>
                 </div>
-                <div class="bg-green-50 p-4 rounded-lg">
+                <div class="info-box-dark green">
                     <!-- TODO Translate -->
-                    <h3 class="text-lg font-semibold text-green-800 mb-2">🎯 Group Mode</h3>
-                    <p class="text-green-700 text-sm">
+                    <h3 class="text-lg font-semibold mb-2">🎯 Group Mode</h3>
+                    <p class="text-sm">
                         <!-- TODO Translate -->
                         Round-robin format where everyone plays everyone. 3 points for a win, 1 point for losing 
                         with at least one leg won. Top players advance to final.
@@ -36,7 +36,7 @@
         <!-- Action Buttons Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <!-- Create Tournament -->
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="panel-dark rounded-lg shadow-md p-6">
                 <!-- TODO Translate -->
                 <h2 class="text-xl font-bold mb-4">Create Tournament</h2>
                 <p class="text-gray-600 mb-4">
@@ -45,7 +45,7 @@
                 </p>
                 <button 
                     @click="showCreateModal = true"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-md font-medium"
+                    class="w-full btn-primary py-3 px-6 rounded-md font-medium"
                 >
                     <!-- TODO Translate -->
                     Create New Tournament
@@ -53,7 +53,7 @@
             </div>
 
             <!-- Join Tournament -->
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="panel-dark rounded-lg shadow-md p-6">
                 <!-- TODO Translate -->
                 <h2 class="text-xl font-bold mb-4">Join Tournament</h2>
                 <p class="text-gray-600 mb-4">
@@ -65,14 +65,14 @@
                         v-model="joinCode"
                         type="text"
                         placeholder="Enter tournament code"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="input-dark w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                         maxlength="6"
                         @input="formatJoinCode"
                     >
                     <button 
                         @click="handleJoinTournament"
                         :disabled="!joinCode || joinCode.length !== 6 || isJoining"
-                        class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 px-6 rounded-md font-medium"
+                        class="w-full btn-success py-3 px-6 rounded-md font-medium"
                     >
                         <!-- TODO Translate -->
                         {{ isJoining ? 'Joining...' : 'Join Tournament' }}
@@ -82,7 +82,7 @@
         </div>
 
         <!-- Previous Tournaments Section -->
-        <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="panel-dark rounded-lg shadow-md p-6">
             <!-- TODO Translate -->
             <h2 class="text-xl font-bold mb-4">Your Tournament History</h2>
             
@@ -99,7 +99,7 @@
                 <div 
                     v-for="tournament in tournamentHistory" 
                     :key="tournament.id"
-                    class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                    class="border border-gray-200 rounded-lg p-4 hover:bg-dark-tertiary"
                 >
                     <div class="flex justify-between items-start">
                         <div>
@@ -125,7 +125,7 @@
                             </p>
                             <button 
                                 @click="viewTournament(tournament.id)"
-                                class="mt-2 text-blue-600 hover:underline text-sm"
+                                class="mt-2 hover:underline text-sm" style="color: var(--text-accent)"
                             >
                                 <!-- TODO Translate -->
                                 View Details
@@ -139,7 +139,7 @@
         <!-- Create Tournament Modal -->
         <div v-if="showCreateModal" class="fixed inset-0 flex items-center justify-center z-50 p-4">
             <div class="absolute inset-0 bg-black bg-opacity-50" @click="showCreateModal = false"></div>
-            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl relative z-10 max-h-screen overflow-y-auto">
+            <div class="modal-dark rounded-lg shadow-xl w-full max-w-2xl relative z-10 max-h-screen overflow-y-auto">
                 <div class="p-6">
                     <!-- TODO Translate -->
                     <h3 class="text-xl font-semibold mb-6">Create New Tournament</h3>
@@ -149,8 +149,8 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <!-- TODO Translate -->
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Game Type</label>
-                                <select v-model="createForm.gameType" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <label class="block text-sm font-medium mb-2">Game Type</label>
+                                <select v-model="createForm.gameType" class="input-dark w-full px-3 py-2 rounded-md">
                                     <option value="501">501</option>
                                     <option value="301">301</option>
                                     <option value="701">701</option>
@@ -158,8 +158,8 @@
                             </div>
                             <div>
                                 <!-- TODO Translate -->
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Legs to Win</label>
-                                <select v-model="createForm.legsToWin" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <label class="block text-sm font-medium mb-2">Legs to Win</label>
+                                <select v-model="createForm.legsToWin" class="input-dark w-full px-3 py-2 rounded-md">
                                     <option :value="1">1</option>
                                     <option :value="3">3</option>
                                     <option :value="5">5</option>
@@ -167,8 +167,8 @@
                             </div>
                             <div>
                                 <!-- TODO Translate -->
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Sets to Win</label>
-                                <select v-model="createForm.setsToWin" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <label class="block text-sm font-medium mb-2">Sets to Win</label>
+                                <select v-model="createForm.setsToWin" class="input-dark w-full px-3 py-2 rounded-md">
                                     <option :value="1">1</option>
                                     <option :value="2">2</option>
                                     <option :value="3">3</option>
@@ -180,16 +180,16 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <!-- TODO Translate -->
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Tournament Mode</label>
-                                <select v-model="createForm.mode" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <label class="block text-sm font-medium mb-2">Tournament Mode</label>
+                                <select v-model="createForm.mode" class="input-dark w-full px-3 py-2 rounded-md">
                                     <option value="bracket">Bracket (Knockout)</option>
                                     <option value="group">Group (Round Robin)</option>
                                 </select>
                             </div>
                             <div>
                                 <!-- TODO Translate -->
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Max Players</label>
-                                <select v-model="createForm.maxPlayers" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <label class="block text-sm font-medium mb-2">Max Players</label>
+                                <select v-model="createForm.maxPlayers" class="input-dark w-full px-3 py-2 rounded-md">
                                     <option :value="4">4 Players</option>
                                     <option :value="8">8 Players</option>
                                     <option :value="16">16 Players</option>
@@ -198,7 +198,7 @@
                         </div>
 
                         <!-- Bonus Points Settings -->
-                        <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="border border-primary rounded-lg p-4 bg-dark-secondary">
                             <!-- TODO Translate -->
                             <h4 class="font-medium mb-3">Bonus Points</h4>
                             <div class="space-y-3">
@@ -218,7 +218,7 @@
                                         type="number"
                                         min="1"
                                         max="5"
-                                        class="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                                        class="input-dark w-16 px-2 py-1 rounded text-center"
                                     >
                                 </div>
                                 <div class="flex items-center justify-between">
@@ -237,7 +237,7 @@
                                         type="number"
                                         min="1"
                                         max="5"
-                                        class="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                                        class="input-dark w-16 px-2 py-1 rounded text-center"
                                     >
                                 </div>
                                 <div class="flex items-center justify-between">
@@ -256,7 +256,7 @@
                                         type="number"
                                         min="1"
                                         max="5"
-                                        class="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                                        class="input-dark w-16 px-2 py-1 rounded text-center"
                                     >
                                 </div>
                             </div>
@@ -270,7 +270,7 @@
                                 id="thirdPlace"
                                 class="mr-2"
                             >
-                            <label for="thirdPlace" class="text-sm font-medium text-gray-700">
+                            <label for="thirdPlace" class="text-sm font-medium">
                                 <!-- TODO Translate -->
                                 Enable third place playoff
                             </label>
@@ -281,7 +281,7 @@
                             <button
                                 type="button"
                                 @click="showCreateModal = false"
-                                class="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300"
+                                class="flex-1 btn-secondary py-2 px-4 rounded-md"
                                 :disabled="isCreating"
                             >
                                 <!-- TODO Translate -->
@@ -289,7 +289,7 @@
                             </button>
                             <button
                                 type="submit"
-                                class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+                                class="flex-1 btn-primary py-2 px-4 rounded-md"
                                 :disabled="isCreating"
                             >
                                 <!-- TODO Translate -->
@@ -383,13 +383,13 @@ const viewTournament = (tournamentId: string) => {
 const getTournamentStatusClass = (status: string) => {
     switch (status) {
         case 'completed':
-            return 'bg-green-100 text-green-800'
+            return 'bg-success bg-opacity-20 text-success'
         case 'active':
-            return 'bg-blue-100 text-blue-800'
+            return 'bg-info bg-opacity-20 text-info'
         case 'waiting':
-            return 'bg-yellow-100 text-yellow-800'
+            return 'bg-warning bg-opacity-20 text-warning'
         default:
-            return 'bg-gray-100 text-gray-800'
+            return 'bg-dark-tertiary text-secondary'
     }
 }
 

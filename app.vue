@@ -16,3 +16,12 @@ import { computed } from 'vue'
 const loadingStore = useLoadingStore()
 const isLoading = computed(() => loadingStore.isLoading && !loadingStore.initialAuthCheckDone)
 </script>
+
+<style>
+/* Ensure dark theme is applied globally */
+html, body {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+</style>

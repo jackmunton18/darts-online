@@ -1,18 +1,18 @@
 <template>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <!-- Scoreboard (Left Side) -->
-        <div class="bg-white rounded-lg shadow-md p-4 md:p-6">
+        <div class="rounded-lg shadow-md p-4 md:p-6" style="background-color: var(--bg-primary); color: var(--text-primary)">
             <!-- TODO Translate -->
-            <h3 class="text-lg font-semibold mb-4">Scoreboard</h3>
+            <h3 class="text-lg font-semibold mb-4" style="color: var(--text-accent)">Scoreboard</h3>
             
             <div v-if="currentGame" class="space-y-4">
                 <!-- Current Turn Info -->
-                <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                <div class="p-3 rounded-lg border" style="background-color: var(--bg-accent-primary); border-color: var(--border-accent)">
                     <div class="text-center">
                         <!-- TODO Translate -->
-                        <div class="text-sm text-gray-600">Current Player</div>
-                        <div class="font-bold text-lg">{{ currentPlayer?.name || 'Unknown' }}</div>
-                        <div class="text-xs text-gray-500">Set {{ currentGame.currentSet }} • Leg {{ currentGame.currentLeg }}</div>
+                        <div class="text-sm" style="color: var(--text-accent)">Current Player</div>
+                        <div class="font-bold text-lg" style="color: var(--text-primary)">{{ currentPlayer?.name || 'Unknown' }}</div>
+                        <div class="text-xs" style="color: var(--text-accent-light)">Set {{ currentGame.currentSet }} • Leg {{ currentGame.currentLeg }}</div>
                     </div>
                 </div>
                 
@@ -21,16 +21,16 @@
                     <div 
                         v-for="player in currentGame.players" 
                         :key="player.id"
-                        :class="[
-                            'p-4 rounded-lg border-2 transition-all',
+                        class="p-4 rounded-lg border-2 transition-all"
+                        :style="[
                             player.id === currentPlayer?.id 
-                                ? 'border-blue-500 bg-blue-50' 
-                                : 'border-gray-200 bg-gray-50'
+                                ? { borderColor: 'var(--border-accent)', backgroundColor: 'var(--bg-active)' } 
+                                : { borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-tertiary)' }
                         ]"
                     >
                         <div class="flex justify-between items-center mb-2">
-                            <div class="font-medium">{{ player.name }}</div>
-                            <div class="text-xs px-2 py-1 bg-gray-200 rounded">
+                            <div class="font-medium" style="color: var(--text-primary)">{{ player.name }}</div>
+                            <div class="text-xs px-2 py-1 rounded" style="background-color: var(--bg-secondary); color: var(--text-accent)">
                                 <!-- TODO Translate -->
                                 {{ player.id === currentGame.hostId ? 'Host' : 'Player' }}
                             </div>
@@ -38,10 +38,10 @@
                         
                         <!-- Current Score -->
                         <div class="text-center mb-3">
-                            <div class="text-2xl font-bold" :class="player.currentScore <= 170 ? 'text-green-600' : 'text-gray-900'">
+                            <div class="text-2xl font-bold" :style="player.currentScore <= 170 ? 'color: var(--text-success)' : 'color: var(--text-primary)'">
                                 {{ player.currentScore }}
                             </div>
-                            <div class="text-xs text-gray-500">
+                            <div class="text-xs" style="color: var(--text-secondary)">
                                 <!-- TODO Translate -->
                                 Remaining
                             </div>
@@ -50,46 +50,47 @@
                         <!-- Sets and Legs -->
                         <div class="grid grid-cols-2 gap-2 text-sm">
                             <div class="text-center">
-                                <div class="font-medium">{{ player.sets }}</div>
+                                <div class="font-medium" style="color: var(--text-primary)">{{ player.sets }}</div>
                                 <!-- TODO Translate -->
-                                <div class="text-xs text-gray-500">Sets</div>
+                                <div class="text-xs" style="color: var(--text-secondary)">Sets</div>
                             </div>
                             <div class="text-center">
-                                <div class="font-medium">{{ player.legs }}</div>
+                                <div class="font-medium" style="color: var(--text-primary)">{{ player.legs }}</div>
                                 <!-- TODO Translate -->
-                                <div class="text-xs text-gray-500">Legs</div>
+                                <div class="text-xs" style="color: var(--text-secondary)">Legs</div>
                             </div>
                         </div>
                         
                         <!-- Stats -->
-                        <div class="grid grid-cols-3 gap-2 text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200">
+                        <div class="grid grid-cols-3 gap-2 text-xs mt-2 pt-2 border-t" style="color: var(--text-secondary); border-color: var(--border-primary)">
                             <div class="text-center">
-                                <div class="font-medium text-gray-700">{{ player.averagePerTurn.toFixed(1) }}</div>
+                                <div class="font-medium" style="color: var(--text-accent)">{{ player.averagePerTurn.toFixed(1) }}</div>
                                 <!-- TODO Translate -->
                                 <div>Avg</div>
                             </div>
                             <div class="text-center">
-                                <div class="font-medium text-gray-700">{{ player.totalTurns }}</div>
+                                <div class="font-medium" style="color: var(--text-accent)">{{ player.totalTurns }}</div>
                                 <!-- TODO Translate -->
                                 <div>Turns</div>
                             </div>
                             <div class="text-center">
-                                <div class="font-medium text-gray-700">{{ player.checkoutPercentage.toFixed(0) }}%</div>
+                                <div class="font-medium" style="color: var(--text-accent)">{{ player.checkoutPercentage.toFixed(0) }}%</div>
                                 <!-- TODO Translate -->
                                 <div>Checkout</div>
                             </div>
                         </div>
                         
                         <!-- Shot History -->
-                        <div class="mt-3 pt-3 border-t border-gray-200" v-if="getPlayerTurns(player.id).length > 0">
+                        <div class="mt-3 pt-3 border-t" style="border-color: var(--border-primary)" v-if="getPlayerTurns(player.id).length > 0">
                             <div class="flex justify-between items-center mb-2">
-                                <div class="text-xs font-medium text-gray-600">
+                                <div class="text-xs font-medium" style="color: var(--text-secondary)">
                                     <!-- TODO Translate -->
                                     Recent Turns
                                 </div>
                                 <button
                                     @click="toggleShotHistory(player.id)"
-                                    class="text-xs text-blue-600 hover:text-blue-800"
+                                    class="text-xs hover:text-blue-300"
+                                    style="color: var(--text-accent)"
                                 >
                                     {{ expandedHistory[player.id] ? 'Hide' : 'Show All' }}
                                 </button>
@@ -98,7 +99,8 @@
                                 <div 
                                     v-for="(turn, index) in getDisplayedTurns(player.id)" 
                                     :key="turn.turnNumber"
-                                    class="text-xs bg-gray-50 p-2 rounded"
+                                    class="text-xs p-2 rounded"
+                                    style="background-color: var(--bg-secondary)"
                                 >
                                     <div class="flex justify-between items-center">
                                         <div class="font-medium">
@@ -121,17 +123,18 @@
         </div>
         
         <!-- Input Panel (Right Side) -->
-        <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="rounded-lg shadow-md p-6" style="background-color: var(--bg-primary); color: var(--text-primary)">
             <div class="mb-6">
                 <div class="flex justify-between items-center mb-4">
                     <!-- TODO Translate -->
-                    <h3 class="text-lg font-semibold">
+                    <h3 class="text-lg font-semibold" style="color: var(--text-accent)">
                         {{ isCurrentUserPlaying ? 'Score Input' : 'Game in Progress' }}
                     </h3>
                     
                     <div 
                         v-if="currentGame && remainingScore <= 170" 
-                        class="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full"
+                        class="text-sm px-3 py-1 rounded-full"
+                        style="background-color: var(--bg-success-light); color: var(--text-success)"
                     >
                         <!-- TODO Translate -->
                         Checkout Range!
@@ -139,13 +142,13 @@
                 </div>
                 
                 <!-- Turn Restriction Notice -->
-                <div v-if="!isCurrentPlayerTurn && isCurrentUserPlaying" class="mb-4 p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg">
+                <div v-if="!isCurrentPlayerTurn && isCurrentUserPlaying" class="mb-4 p-3 rounded-lg border" style="background-color: var(--bg-warning-light); border-color: var(--border-warning); color: var(--text-warning)">
                     <!-- TODO Translate -->
                     <p>It's not your turn. Wait for {{ currentPlayer?.name || 'the other player' }} to complete their turn.</p>
                 </div>
                 
                 <!-- Current Turn Progress -->
-                <div v-if="isCurrentPlayerTurn && currentGame" class="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg">
+                <div v-if="isCurrentPlayerTurn && currentGame" class="mb-4 p-3 rounded-lg border" style="background-color: var(--bg-accent-primary); border-color: var(--border-accent); color: var(--text-accent-light)">
                     <!-- TODO Translate -->
                     <div class="flex justify-between items-center">
                         <span>Your Turn - Throws: {{ currentGame.currentTurnThrows || 0 }}/3</span>
@@ -157,7 +160,7 @@
                 
                 
                 <!-- Spectator Notice -->
-                <div v-if="!isCurrentUserPlaying" class="mb-4 p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg">
+                <div v-if="!isCurrentUserPlaying" class="mb-4 p-3 rounded-lg border" style="background-color: var(--bg-warning-light); border-color: var(--border-warning); color: var(--text-warning)">
                     <!-- TODO Translate -->
                     <p>You are spectating this game. Only players can submit scores.</p>
                 </div>
@@ -166,24 +169,16 @@
                 <div v-if="isCurrentPlayerTurn" class="flex space-x-4 mb-4">
                     <button
                         @click="inputMethod = 'total'"
-                        :class="[
-                            'px-4 py-2 rounded-md font-medium',
-                            inputMethod === 'total'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        ]"
+                        class="px-4 py-2 rounded-md font-medium toggle-button"
+                        :class="{ 'active': inputMethod === 'total' }"
                     >
                         <!-- TODO Translate -->
                         Total Score
                     </button>
                     <button
                         @click="inputMethod = 'individual'"
-                        :class="[
-                            'px-4 py-2 rounded-md font-medium',
-                            inputMethod === 'individual'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        ]"
+                        class="px-4 py-2 rounded-md font-medium toggle-button"
+                        :class="{ 'active': inputMethod === 'individual' }"
                     >
                         <!-- TODO Translate -->
                         Individual Throws
@@ -193,7 +188,7 @@
                 <!-- Total Score Input -->
                 <div v-if="inputMethod === 'total' && isCurrentPlayerTurn" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <label class="block text-sm font-medium mb-2" style="color: var(--text-info)">
                             <!-- TODO Translate -->
                             Total Score for Turn
                         </label>
@@ -202,14 +197,16 @@
                             type="number"
                             min="0"
                             :max="remainingScore"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            style="background-color: var(--bg-input); color: var(--text-primary); border-color: var(--border-primary);"
                             placeholder="Enter total score"
                         />
                     </div>
                     <button
                         @click="submitTotalScore"
                         :disabled="!isValidTotalScore || isLoading"
-                        class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        class="w-full py-2 px-4 rounded-md score-submit-button"
+                        :class="{ 'disabled': !isValidTotalScore || isLoading }"
                     >
                         <!-- TODO Translate -->
                         {{ isLoading ? 'Submitting...' : 'Submit Score' }}
@@ -218,13 +215,13 @@
 
                 <!-- Individual Throws Input -->
                 <div v-if="inputMethod === 'individual' && isCurrentPlayerTurn" class="space-y-4">
-                    <div class="bg-gray-50 p-3 rounded-lg">
+                    <div class="bg-gray-700 p-3 rounded-lg">
                         <div class="grid grid-cols-3 gap-4 mb-2 h-14">
-                            <div v-for="(dartThrow, index) in currentThrows" :key="index" class="bg-white p-2 border border-gray-200 rounded text-center">
-                                <div class="font-bold">{{ formatThrow(dartThrow) }}</div>
-                                <div class="text-xs text-gray-500">{{ dartThrow.score }} points</div>
+                            <div v-for="(dartThrow, index) in currentThrows" :key="index" class="bg-gray-600 p-2 border border-gray-500 rounded text-center">
+                                <div class="font-bold text-white">{{ formatThrow(dartThrow) }}</div>
+                                <div class="text-xs text-blue-200">{{ dartThrow.score }} points</div>
                             </div>
-                            <div v-for="i in (remainingThrowsInTurn)" :key="`empty-${i}`" class="bg-gray-100 p-2 border border-dashed border-gray-200 rounded text-center">
+                            <div v-for="i in (remainingThrowsInTurn)" :key="`empty-${i}`" class="bg-gray-800 p-2 border border-dashed border-gray-600 rounded text-center">
                                 <div class="text-gray-400 text-sm">
                                     <!-- TODO Translate -->
                                     Throw {{ (currentGame?.currentTurnThrows || 0) + currentThrows.length + i }}
@@ -232,10 +229,10 @@
                             </div>
                         </div>
                         
-                        <div class="text-right text-sm">
+                        <div class="text-right text-sm text-white">
                             <!-- TODO Translate -->
-                            Total: <span class="font-bold">{{ totalScore }}</span>
-                            <span class="text-gray-500 ml-2">
+                            Total: <span class="font-bold text-blue-300">{{ totalScore }}</span>
+                            <span class="text-gray-300 ml-2">
                                 ({{ remainingThrowsInTurn }} throws left)
                             </span>
                         </div>
@@ -252,12 +249,8 @@
                                 v-for="multiplier in ['single', 'double', 'triple']"
                                 :key="multiplier"
                                 @click="selectedMultiplier = multiplier"
-                                :class="[
-                                    'flex-1 py-2 rounded-md text-center',
-                                    selectedMultiplier === multiplier
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                ]"
+                                class="flex-1 py-2 rounded-md text-center multiplier-button"
+                                :class="{ 'active': selectedMultiplier === multiplier }"
                             >
                                 {{ multiplier.charAt(0).toUpperCase() + multiplier.slice(1) }}
                             </button>
@@ -269,7 +262,8 @@
                                 v-for="n in 20"
                                 :key="n"
                                 @click="addThrow(n, selectedMultiplier as 'single' | 'double' | 'triple')"
-                                class="p-3 bg-gray-200 hover:bg-gray-300 text-center rounded disabled:bg-gray-100 disabled:cursor-not-allowed text-lg font-medium touch-manipulation"
+                                class="p-3 text-center rounded text-lg font-medium touch-manipulation number-grid-button"
+                                :class="{ 'disabled': remainingThrowsInTurn <= 0 }"
                                 style="min-height: 48px;"
                                 :disabled="remainingThrowsInTurn <= 0"
                             >
@@ -281,7 +275,8 @@
                         <div class="grid grid-cols-3 gap-2 mb-4">
                             <button
                                 @click="addThrow(25, 'single')"
-                                class="p-3 bg-yellow-200 hover:bg-yellow-300 text-center rounded disabled:bg-gray-100 disabled:cursor-not-allowed text-sm sm:text-base touch-manipulation"
+                                class="p-3 text-center rounded text-sm sm:text-base touch-manipulation special-button bulls-outer"
+                                :class="{ 'disabled': remainingThrowsInTurn <= 0 }"
                                 style="min-height: 48px;"
                                 :disabled="remainingThrowsInTurn <= 0"
                             >
@@ -290,7 +285,8 @@
                             </button>
                             <button
                                 @click="addThrow(25, 'double')"
-                                class="p-3 bg-red-200 hover:bg-red-300 text-center rounded disabled:bg-gray-100 disabled:cursor-not-allowed text-sm sm:text-base touch-manipulation"
+                                class="p-3 text-center rounded text-sm sm:text-base touch-manipulation special-button bulls-eye"
+                                :class="{ 'disabled': remainingThrowsInTurn <= 0 }"
                                 style="min-height: 48px;"
                                 :disabled="remainingThrowsInTurn <= 0"
                             >
@@ -299,7 +295,8 @@
                             </button>
                             <button
                                 @click="addThrow(0, 'single')"
-                                class="p-3 bg-gray-200 hover:bg-gray-300 text-center rounded disabled:bg-gray-100 disabled:cursor-not-allowed text-sm sm:text-base touch-manipulation"
+                                class="p-3 text-center rounded text-sm sm:text-base touch-manipulation special-button miss"
+                                :class="{ 'disabled': remainingThrowsInTurn <= 0 }"
                                 style="min-height: 48px;"
                                 :disabled="remainingThrowsInTurn <= 0"
                             >
@@ -313,7 +310,8 @@
                         <button
                             @click="removeLastThrow"
                             :disabled="currentThrows.length === 0"
-                            class="flex-1 bg-yellow-600 text-white py-3 px-4 rounded-md hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-base font-medium touch-manipulation"
+                            class="flex-1 py-3 px-4 rounded-md text-base font-medium touch-manipulation action-button warning"
+                            :class="{ 'disabled': currentThrows.length === 0 }"
                             style="min-height: 52px;"
                         >
                             <!-- TODO Translate -->
@@ -322,7 +320,8 @@
                         <button
                             @click="submitIndividualThrows"
                             :disabled="currentThrows.length === 0 || isLoading"
-                            class="flex-1 bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-base font-medium touch-manipulation"
+                            class="flex-1 py-3 px-4 rounded-md text-base font-medium touch-manipulation action-button success"
+                            :class="{ 'disabled': currentThrows.length === 0 || isLoading }"
                             style="min-height: 52px;"
                         >
                             <!-- TODO Translate -->
@@ -334,9 +333,9 @@
                 <!-- Checkout suggestions -->
                 <div v-if="remainingScore <= 170 && isCurrentPlayerTurn" class="mt-4">
                     <!-- TODO Translate -->
-                    <h4 class="text-md font-medium mb-2">Checkout Suggestions</h4>
-                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                        <div v-if="checkoutSuggestions.length === 0" class="text-gray-500 text-sm">
+                    <h4 class="text-md font-medium mb-2" style="color: var(--text-info)">Checkout Suggestions</h4>
+                    <div class="p-3 rounded-lg border checkout-suggestions-container">
+                        <div v-if="checkoutSuggestions.length === 0" class="text-sm" style="color: var(--text-secondary)">
                             <!-- TODO Translate -->
                             No checkout suggestions available
                         </div>
@@ -346,7 +345,7 @@
                                     <span 
                                         v-for="(dart, i) in suggestion" 
                                         :key="i"
-                                        class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm"
+                                        class="px-2 py-1 rounded text-sm checkout-suggestion-item"
                                     >
                                         {{ dart }}
                                     </span>
@@ -359,16 +358,16 @@
                 <!-- Top 5 scoring options if not in checkout range -->
                 <div v-else-if="remainingScore > 170 && isCurrentPlayerTurn" class="mt-4">
                     <!-- TODO Translate -->
-                    <h4 class="text-md font-medium mb-2">Best Scoring Options</h4>
-                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <h4 class="text-md font-medium mb-2" style="color: var(--text-info)">Best Scoring Options</h4>
+                    <div class="p-3 rounded-lg border scoring-options-container">
                         <div class="grid grid-cols-5 gap-2">
                             <div 
                                 v-for="option in bestScoringOptions" 
                                 :key="`${option.multiplier}-${option.value}`"
-                                class="p-2 bg-white border border-gray-200 rounded text-center"
+                                class="p-2 border rounded text-center scoring-option-item"
                             >
-                                <div class="font-medium text-sm">{{ option.label }}</div>
-                                <div class="text-xs text-gray-500">{{ option.score }} points</div>
+                                <div class="font-medium text-sm" style="color: var(--text-primary)">{{ option.label }}</div>
+                                <div class="text-xs" style="color: var(--text-accent-light)">{{ option.score }} points</div>
                             </div>
                         </div>
                     </div>
@@ -509,7 +508,7 @@ const isUserAllowedToScore = computed(() => {
 const formatThrow = (dartThrow: DartThrow) => {
     if (dartThrow.value === 0) return 'Miss'
     if (dartThrow.value === 25 && dartThrow.multiplier === 'single') return 'Outer Bull'
-    if (dartThrow.value === 25 && dartThrow.multiplier === 'double') return 'Inner Bull'
+    if (dartThrow.value === 25 && dartThrow.multiplier === 'double') return 'Bull'
     
     const prefix = 
         dartThrow.multiplier === 'single' ? 'S' : 
@@ -542,29 +541,111 @@ const submitTotalScore = async () => {
         const score = totalScoreInput.value
         const throws: DartThrow[] = []
         
-        // For simplicity, we'll create generic throws to represent the total
-        // This could be improved with more accurate throw representation
-        throws.push({
-            value: Math.min(20, Math.floor(score / 3)),
-            multiplier: 'single',
-            score: Math.min(20, Math.floor(score / 3)),
-            timestamp: new Date().toISOString()
-        })
+        // More intelligently distribute the score across three darts
+        let remainingScore = score
         
-        throws.push({
-            value: Math.min(20, Math.floor(score / 3)),
-            multiplier: 'single',
-            score: Math.min(20, Math.floor(score / 3)),
-            timestamp: new Date().toISOString()
-        })
+        // First dart - try to use highest possible score
+        if (remainingScore >= 60) {
+            // Triple 20
+            throws.push({
+                value: 20,
+                multiplier: 'triple',
+                score: 60,
+                timestamp: new Date().toISOString()
+            })
+            remainingScore -= 60
+        } else if (remainingScore >= 50) {
+            // Bullseye
+            throws.push({
+                value: 25,
+                multiplier: 'double',
+                score: 50,
+                timestamp: new Date().toISOString()
+            })
+            remainingScore -= 50
+        } else if (remainingScore >= 40) {
+            // Double 20
+            throws.push({
+                value: 20,
+                multiplier: 'double',
+                score: 40,
+                timestamp: new Date().toISOString()
+            })
+            remainingScore -= 40
+        } else if (remainingScore >= 20) {
+            // Single 20
+            throws.push({
+                value: 20,
+                multiplier: 'single',
+                score: 20,
+                timestamp: new Date().toISOString()
+            })
+            remainingScore -= 20
+        } else {
+            // Use remaining score
+            throws.push({
+                value: remainingScore,
+                multiplier: 'single',
+                score: remainingScore,
+                timestamp: new Date().toISOString()
+            })
+            remainingScore = 0
+        }
         
-        const remaining = score - throws[0].score - throws[1].score
-        throws.push({
-            value: Math.min(20, remaining),
-            multiplier: 'single',
-            score: Math.min(20, remaining),
-            timestamp: new Date().toISOString()
-        })
+        // Second dart
+        if (remainingScore >= 60) {
+            throws.push({
+                value: 20,
+                multiplier: 'triple',
+                score: 60,
+                timestamp: new Date().toISOString()
+            })
+            remainingScore -= 60
+        } else if (remainingScore >= 50) {
+            throws.push({
+                value: 25,
+                multiplier: 'double',
+                score: 50,
+                timestamp: new Date().toISOString()
+            })
+            remainingScore -= 50
+        } else if (remainingScore > 0) {
+            // Use best multiplier for remaining score
+            const value = Math.min(20, remainingScore)
+            throws.push({
+                value: value,
+                multiplier: 'single',
+                score: value,
+                timestamp: new Date().toISOString()
+            })
+            remainingScore -= value
+        } else {
+            // No score left, add a miss
+            throws.push({
+                value: 0,
+                multiplier: 'single',
+                score: 0,
+                timestamp: new Date().toISOString()
+            })
+        }
+        
+        // Third dart
+        if (remainingScore > 0) {
+            throws.push({
+                value: Math.min(20, remainingScore),
+                multiplier: 'single',
+                score: Math.min(20, remainingScore),
+                timestamp: new Date().toISOString()
+            })
+        } else {
+            // No score left, add a miss
+            throws.push({
+                value: 0,
+                multiplier: 'single',
+                score: 0,
+                timestamp: new Date().toISOString()
+            })
+        }
         
         if (recordThrow) {
             await recordThrow(throws)
@@ -980,3 +1061,222 @@ watch(() => currentGame.value?.players?.map(p => ({ id: p.id, sets: p.sets })), 
     }
 }, { deep: true })
 </script>
+
+<style>
+:root {
+    /* Background Colors */
+    --bg-primary: theme('colors.gray.800');
+    --bg-secondary: theme('colors.gray.700');
+    --bg-tertiary: theme('colors.gray.600');
+    --bg-input: theme('colors.gray.700');
+    --bg-success: theme('colors.green.700');
+    --bg-danger: theme('colors.red.700');
+    --bg-warning: theme('colors.yellow.700');
+    --bg-info: theme('colors.blue.700');
+    --bg-active: theme('colors.gray.700');
+    --bg-accent-primary: theme('colors.blue.900');
+    --bg-accent-secondary: theme('colors.blue.800');
+    
+    /* Button Colors */
+    --bg-button: theme('colors.gray.700');
+    --bg-button-hover: theme('colors.gray.600');
+    --bg-button-active: theme('colors.blue.600');
+    --bg-button-success: theme('colors.green.700');
+    --bg-button-success-hover: theme('colors.green.600');
+    --bg-button-danger: theme('colors.red.700');
+    --bg-button-danger-hover: theme('colors.red.600');
+    --bg-button-warning: theme('colors.yellow.700');
+    --bg-button-warning-hover: theme('colors.yellow.600');
+    
+    /* Text Colors */
+    --text-primary: theme('colors.white');
+    --text-secondary: theme('colors.gray.300');
+    --text-muted: theme('colors.gray.400');
+    --text-success: theme('colors.green.400');
+    --text-danger: theme('colors.red.400');
+    --text-warning: theme('colors.yellow.400');
+    --text-info: theme('colors.blue.400');
+    --text-accent: theme('colors.blue.300');
+    --text-accent-light: theme('colors.blue.200');
+    
+    /* Border Colors */
+    --border-primary: theme('colors.gray.600');
+    --border-secondary: theme('colors.gray.500');
+    --border-success: theme('colors.green.600');
+    --border-danger: theme('colors.red.600');
+    --border-warning: theme('colors.yellow.600');
+    --border-info: theme('colors.blue.600');
+    --border-accent: theme('colors.blue.500');
+}
+
+.toggle-button {
+    background-color: var(--bg-button);
+    color: var(--text-secondary);
+}
+
+.toggle-button:hover {
+    background-color: var(--bg-button-hover);
+}
+
+.toggle-button.active {
+    background-color: var(--bg-button-active);
+    color: var(--text-primary);
+}
+
+.score-submit-button {
+    background-color: var(--bg-button-success);
+    color: var(--text-primary);
+}
+
+.score-submit-button:hover {
+    background-color: var(--bg-button-success-hover);
+}
+
+.score-submit-button.disabled {
+    background-color: var(--bg-tertiary);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+.number-pad-button {
+    background-color: var(--bg-button);
+    color: var(--text-primary);
+    font-weight: bold;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+}
+
+.number-pad-default:hover {
+    background-color: var(--bg-button-hover);
+}
+
+.number-pad-clear {
+    background-color: var(--bg-danger);
+}
+
+.number-pad-clear:hover {
+    background-color: theme('colors.red.600');
+}
+
+.number-pad-submit {
+    background-color: var(--bg-success);
+}
+
+.number-pad-submit:hover {
+    background-color: theme('colors.green.600');
+}
+
+.multiplier-button {
+    background-color: var(--bg-button);
+    color: var(--text-secondary);
+}
+
+.multiplier-button:hover {
+    background-color: var(--bg-button-hover);
+}
+
+.multiplier-button.active {
+    background-color: var(--bg-button-active);
+    color: var(--text-primary);
+}
+
+.number-grid-button {
+    background-color: var(--bg-button);
+    color: var(--text-primary);
+}
+
+.number-grid-button:hover {
+    background-color: var(--bg-button-hover);
+}
+
+.number-grid-button.disabled {
+    background-color: theme('colors.gray.900');
+    color: theme('colors.gray.600');
+    cursor: not-allowed;
+}
+
+.special-button {
+    cursor: pointer;
+}
+
+.special-button.disabled {
+    background-color: theme('colors.gray.900') !important;
+    color: theme('colors.gray.600') !important;
+    cursor: not-allowed;
+}
+
+.bulls-outer {
+    background-color: var(--bg-button-warning);
+    color: theme('colors.yellow.200');
+}
+
+.bulls-outer:hover {
+    background-color: var(--bg-button-warning-hover);
+}
+
+.bulls-eye {
+    background-color: var(--bg-button-danger);
+    color: theme('colors.red.200');
+}
+
+.bulls-eye:hover {
+    background-color: var(--bg-button-danger-hover);
+}
+
+.miss {
+    background-color: var(--bg-button);
+    color: var(--text-primary);
+}
+
+.miss:hover {
+    background-color: var(--bg-button-hover);
+}
+
+.action-button {
+    color: var(--text-primary);
+}
+
+.action-button.success {
+    background-color: var(--bg-button-success);
+}
+
+.action-button.success:hover {
+    background-color: var(--bg-button-success-hover);
+}
+
+.action-button.warning {
+    background-color: var(--bg-button-warning);
+}
+
+.action-button.warning:hover {
+    background-color: var(--bg-button-warning-hover);
+}
+
+.action-button.disabled {
+    background-color: var(--bg-tertiary);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+.checkout-suggestions-container {
+    background-color: var(--bg-accent-primary);
+    border-color: var(--border-info);
+}
+
+.checkout-suggestion-item {
+    background-color: var(--bg-accent-secondary);
+    color: var(--text-accent-light);
+}
+
+.scoring-options-container {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-primary);
+}
+
+.scoring-option-item {
+    background-color: var(--bg-primary);
+    border-color: var(--border-primary);
+}
+</style>

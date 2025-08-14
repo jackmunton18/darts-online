@@ -1,9 +1,9 @@
 <template>
-  <header class="bg-white shadow-sm">
+  <header class="bg-dark-tertiary shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center py-4 md:py-6">
         <div class="flex items-center">
-          <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Darts Platform</h1>
+          <h1 class="text-2xl md:text-3xl font-bold text-light">Darts Platform</h1>
         </div>
         
         <!-- Mobile menu button -->
@@ -25,11 +25,11 @@
         </div>
         
         <!-- Mobile menu dropdown -->
-        <div v-if="isMobileMenuOpen" class="absolute top-16 left-0 right-0 z-10 bg-white shadow-md p-4 border-t md:hidden">
+        <div v-if="isMobileMenuOpen" class="absolute top-16 left-0 right-0 z-10 bg-dark-tertiary shadow-md p-4 border-t border-border-primary md:hidden">
           <div class="flex flex-col space-y-3">
             <NuxtLink 
               to="/"
-              class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-base font-medium block"
+              class="text-primary hover:text-light px-3 py-2 rounded-md text-base font-medium block"
               @click="isMobileMenuOpen = false"
             >
               <!-- TODO Translate -->

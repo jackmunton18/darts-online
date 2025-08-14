@@ -24,4 +24,13 @@ onMounted(async () => {
     router.push('/')
   }
 })
-</script> 
+</script>
+
+<style>
+/* Apply dark theme to layout */
+main {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: calc(100vh - 4rem); /* Adjust for header */
+}
+</style> 

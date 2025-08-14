@@ -1,0 +1,75 @@
+/* Tailwind dark mode overrides */
+
+/* Background colors */
+.bg-white, .bg-gray-50, .bg-gray-100, .bg-gray-200 {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Text colors */
+.text-gray-700, .text-gray-800, .text-gray-900, .text-black {
+    color: var(--text-primary) !important;
+}
+
+.text-gray-500, .text-gray-600 {
+    color: var(--text-secondary) !important;
+}
+
+/* Border colors */
+.border-gray-200, .border-gray-300 {
+    border-color: var(--border-primary) !important;
+}
+
+/* Hover states */
+.hover\:bg-gray-50:hover, .hover\:bg-gray-100:hover, .hover\:bg-gray-200:hover {
+    background-color: var(--bg-tertiary) !important;
+    opacity: 0.9;
+}
+
+.hover\:text-gray-900:hover {
+    color: var(--text-light) !important;
+}
+
+/* Table styles */
+.divide-y, .divide-gray-200 {
+    border-color: var(--border-primary) !important;
+}
+
+/* Input styles */
+input, select, textarea {
+    background-color: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-primary) !important;
+
+    &:focus {
+        border-color: var(--dart-green) !important;
+        box-shadow: 0 0 0 2px rgba(1, 172, 90, 0.2) !important;
+    }
+}
+
+/* Button overrides */
+.bg-blue-600 {
+    background-color: var(--dart-blue) !important;
+}
+
+.bg-green-600 {
+    background-color: var(--dart-green) !important;
+}
+
+.hover\:bg-blue-700:hover {
+    background-color: color-mix(in srgb, var(--dart-blue) 80%, white) !important;
+}
+
+.hover\:bg-green-700:hover {
+    background-color: color-mix(in srgb, var(--dart-green) 80%, white) !important;
+}
+
+/* Modal styles */
+.bg-black\/5 {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Common class mappings */
+.shadow-md, .shadow-lg, .shadow-xl {
+    box-shadow: 0 4px 8px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3) !important;
+}

@@ -1,0 +1,132 @@
+/* Dart Theme Colors */
+:root {
+    /* Dart Theme Colors */
+    --dart-green: #01ac5a;        /* Dartboard green */
+    --dart-red: #e61e26;          /* Dartboard red */
+    --dart-black: #161616;        /* Dartboard black */
+    --dart-cream: #f5e7d0;        /* Dartboard cream/tan */
+    --dart-blue: #0072bb;         /* Accent blue */
+    --dart-gold: #ffd700;         /* Gold accent */
+    
+    /* Background Colors - Dart Theme */
+    --bg-primary: #0a0f0d;        /* Main background (very dark green-black) */
+    --bg-secondary: #111a16;      /* Secondary background (slightly lighter) */
+    --bg-tertiary: #1a2922;       /* Tertiary background (for cards, etc) */
+    --bg-input: #0a0f0d;          /* Input field background */
+    --bg-success: var(--dart-green); /* Success background (green) */
+    --bg-danger: var(--dart-red);    /* Danger background (red) */
+    --bg-warning: #bb8009;        /* Warning background (amber) */
+    --bg-info: var(--dart-blue);     /* Info background (blue) */
+    --bg-active: #243830;         /* Active element background */
+    --bg-accent-primary: #01ac5a20; /* Primary accent with transparency */
+    --bg-accent-secondary: #01ac5a30; /* Secondary accent with transparency */
+    --bg-table-header: #111a16;   /* Table header background */
+    --bg-table-row-hover: #1a2922; /* Table row hover */
+    --bg-modal-overlay: rgba(0, 0, 0, 0.7); /* Modal overlay */
+    
+    /* Button Colors */
+    --bg-button-primary: var(--dart-green);  /* Primary button */
+    --bg-button-primary-hover: #02c467;      /* Primary button hover */
+    --bg-button-secondary: #1a2922;          /* Secondary button */
+    --bg-button-secondary-hover: #243830;    /* Secondary button hover */
+    --bg-button-success: var(--dart-green);  /* Success button */
+    --bg-button-success-hover: #02c467;      /* Success button hover */
+    --bg-button-danger: var(--dart-red);     /* Danger button */
+    --bg-button-danger-hover: #fd3c44;       /* Danger button hover */
+    --bg-button-warning: #bb8009;            /* Warning button */
+    --bg-button-warning-hover: #dca315;      /* Warning button hover */
+    --bg-button-disabled: #37433e;           /* Disabled button */
+    
+    /* Text Colors */
+    --text-primary: #e2e8e5;      /* Primary text */
+    --text-secondary: #9baca4;    /* Secondary text */
+    --text-muted: #6e7d77;        /* Muted text */
+    --text-light: #f5f9f7;        /* Light text (for dark backgrounds) */
+    --text-accent: #01c065;       /* Accent text (green) */
+    --text-success: #07dd74;      /* Success text */
+    --text-danger: #ff5a60;       /* Danger text */
+    --text-warning: #ffd75c;      /* Warning text */
+    --text-info: #4c9ed9;         /* Info text */
+    --text-disabled: #6e7d77;     /* Disabled text */
+    --text-highlight: var(--dart-gold); /* Highlighted text */
+    
+    /* Border Colors */
+    --border-primary: #273e33;    /* Primary border */
+    --border-secondary: #1a2922;  /* Secondary border */
+    --border-success: var(--dart-green); /* Success border */
+    --border-danger: var(--dart-red);    /* Danger border */
+    --border-warning: #bb8009;    /* Warning border */
+    --border-info: var(--dart-blue);     /* Info border */
+    --border-accent: var(--dart-green);  /* Accent border */
+    --border-highlight: var(--dart-gold); /* Highlight border */
+}
+
+/* Global Theme Base - Dark by Default */
+html, body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(1, 172, 90, 0.03) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(230, 30, 38, 0.03) 0%, transparent 20%);
+}
+
+/* Global class to replace bg-white */
+.bg-white {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Text color overrides */
+.text-gray-700, .text-gray-800, .text-gray-900, .text-black {
+    color: var(--text-primary) !important;
+}
+
+.text-gray-500, .text-gray-600 {
+    color: var(--text-secondary) !important;
+}
+
+/* Border color overrides */
+.border-gray-200, .border-gray-300 {
+    border-color: var(--border-primary) !important;
+}
+
+/* Button styling */
+.btn-primary {
+    background-color: var(--bg-button-primary);
+    color: var(--text-light);
+    &:hover {
+        background-color: var(--bg-button-primary-hover);
+    }
+    &:disabled {
+        background-color: var(--bg-button-disabled);
+        color: var(--text-disabled);
+    }
+}
+
+.btn-secondary {
+    background-color: var(--bg-button-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-primary);
+    &:hover {
+        background-color: var(--bg-button-secondary-hover);
+    }
+}
+
+.btn-success {
+    background-color: var(--bg-button-success);
+    color: var(--text-light);
+    &:hover {
+        background-color: var(--bg-button-success-hover);
+    }
+}
+
+.btn-danger {
+    background-color: var(--bg-button-danger);
+    color: var(--text-light);
+    &:hover {
+        background-color: var(--bg-button-danger-hover);
+    }
+}
