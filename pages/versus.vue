@@ -31,7 +31,7 @@
 <script setup lang="ts">
 // Set page meta for SEO and navigation
 definePageMeta({
-    title: 'Create or Join Game - Darts Platform',
+    title: 'Create or Join Game - Adam Long Pro Darts',
     description: 'Create a new darts game or join an existing match with a game code'
 })
 

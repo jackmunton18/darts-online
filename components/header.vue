@@ -1,10 +1,11 @@
 <template>
-  <header class="bg-dark-tertiary shadow-sm">
+  <header class="bg-dark-tertiary shadow-sm fixed left-0 top-0 w-full z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center py-4 md:py-6">
-        <div class="flex items-center">
+        <UiLogo size="sm"/>
+        <!-- <div class="flex items-center">
           <h1 class="text-2xl md:text-3xl font-bold text-light">Darts Platform</h1>
-        </div>
+        </div> -->
         
         <!-- Mobile menu button -->
         <div class="md:hidden">

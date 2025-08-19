@@ -71,12 +71,12 @@ export default defineNuxtConfig({
   
   app: {
     head: {
-      title: 'Darts',
+      title: 'Adam Long Pro Darts',
       meta: [
         { charset: 'utf-8' },
         { name: 'mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
-        { name: 'apple-mobile-web-app-title', content: 'Darts' },
+        { name: 'apple-mobile-web-app-title', content: 'Adam Long Pro Darts' },
         { name: 'theme-color', content: '#ffffff' },
         { name: 'msapplication-navbutton-color', content: '#ffffff' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
@@ -90,7 +90,7 @@ export default defineNuxtConfig({
             hid: 'description',
             name: 'description',
             content:
-                "Darts counter.",
+                "Darts tournament and scoring system.",
         },
       ],
 

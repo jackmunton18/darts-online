@@ -1,185 +1,193 @@
 <template>
-    <div class="max-w-6xl mx-auto px-4 py-6">
-        <div class="card-dark p-4 mb-6">
-            <!-- TODO Translate -->
-            <h1 class="text-2xl font-bold mb-4">Darts Games</h1>
-            <p class="text-secondary mb-2">
-                <!-- TODO Translate -->
-                Create a game session or join an existing one with a game code. Track scores in real-time and compete with friends!
-            </p>
-            
-            <div v-if="error" class="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg mb-6">
-                <p>{{ errorMessage }}</p>
-            </div>
+    <div
+        class="flex items-stretch"
+    >
+        <div class="hidden lg:block w-2/5 h-full fixed left-0 top-0 h-screen">
+            <img src="/src/comp.png" class="object-cover object-top w-full h-full" />
         </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <button 
-                @click="navigateToVersus"
-                class="w-full bg-blue-600 text-white py-12 px-4 rounded-md hover:bg-blue-700 text-base font-medium touch-manipulation flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                style="min-height: 52px;"
-            >
+        <div class="hidden lg:block w-2/5 h-full shrink-0"></div>
+        <div class="max-w-6xl mx-auto p-8 py-12">
+            <div class="card-dark p-4 mb-6">
                 <!-- TODO Translate -->
-                Versus Mode
-            </button>
-            <button 
-                @click="navigateToTournament"
-                class="w-full bg-green-600 text-white py-12 px-4 rounded-md hover:bg-green-700 text-base font-medium touch-manipulation flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                style="min-height: 52px;"
-            >
-                <!-- TODO Translate -->
-                Tournament Mode
-            </button>
-            <!-- Quick Actions -->
-            <!-- <div class="panel-dark p-4 md:p-6">
-                <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
-                
-                <div class="space-y-4">
-                    
-                    <div class="text-center text-sm text-muted">
-                        Start a new match or join with a game code
-                    </div>
-                </div>
-            </div> -->
-
-            <!-- Active Games List -->
-            <div class="panel-dark p-4 md:p-6 max-h-[600px] home-panels overflow-auto">
-                <!-- TODO Translate -->
-                <h3 class="text-lg font-semibold mb-4">My Active Games</h3>
-
-                <div v-if="isLoading" class="flex justify-center py-6">
-                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-                
-                <div v-else-if="activeGames.length === 0" class="text-center py-6 text-gray-500">
+                <h1 class="text-2xl font-bold mb-4">Darts Games</h1>
+                <p class="text-secondary mb-2">
                     <!-- TODO Translate -->
-                    <p>No active games found.</p>
-                    <p class="text-sm mt-2">Create a game or join one with a game code to get started!</p>
-                </div>
+                    Create a game session or join an existing one with a game code. Track scores in real-time and compete with friends!
+                </p>
                 
-                <div v-else class="space-y-4">
-                    <div 
-                        v-for="game in activeGames" 
-                        :key="game.gameId" 
-                        class="border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition cursor-pointer touch-manipulation"
-                        @click="navigateToGame(game.gameId)"
-                    >
-                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                            <div>
-                                <div class="font-medium text-base">
+                <div v-if="error" class="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg mb-6">
+                    <p>{{ errorMessage }}</p>
+                </div>
+            </div>
+    
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <button 
+                    @click="navigateToVersus"
+                    class="w-full bg-blue-600 text-white py-12 px-4 rounded-md hover:bg-blue-700 text-base font-medium touch-manipulation flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                    style="min-height: 52px;"
+                >
+                    <!-- TODO Translate -->
+                    Versus Mode
+                </button>
+                <button 
+                    @click="navigateToTournament"
+                    class="w-full bg-green-600 text-white py-12 px-4 rounded-md hover:bg-green-700 text-base font-medium touch-manipulation flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                    style="min-height: 52px;"
+                >
+                    <!-- TODO Translate -->
+                    Tournament Mode
+                </button>
+                <!-- Quick Actions -->
+                <!-- <div class="panel-dark p-4 md:p-6">
+                    <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
+                    
+                    <div class="space-y-4">
+                        
+                        <div class="text-center text-sm text-muted">
+                            Start a new match or join with a game code
+                        </div>
+                    </div>
+                </div> -->
+    
+                <!-- Active Games List -->
+                <div class="panel-dark p-4 md:p-6 max-h-[600px] home-panels overflow-auto">
+                    <!-- TODO Translate -->
+                    <h3 class="text-lg font-semibold mb-4">My Active Games</h3>
+    
+                    <div v-if="isLoading" class="flex justify-center py-6">
+                        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                    </div>
+                    
+                    <div v-else-if="activeGames.length === 0" class="text-center py-6 text-gray-500">
+                        <!-- TODO Translate -->
+                        <p>No active games found.</p>
+                        <p class="text-sm mt-2">Create a game or join one with a game code to get started!</p>
+                    </div>
+                    
+                    <div v-else class="space-y-4">
+                        <div 
+                            v-for="game in activeGames" 
+                            :key="game.gameId" 
+                            class="border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition cursor-pointer touch-manipulation"
+                            @click="navigateToGame(game.gameId)"
+                        >
+                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                                <div>
+                                    <div class="font-medium text-base">
+                                        <!-- TODO Translate -->
+                                        Game Code: <span class="text-blue-600">{{ game.gameCode }}</span>
+                                    </div>
+                                    <div class="text-sm text-gray-500 mt-1">
+                                        <!-- TODO Translate -->
+                                        Role: {{ formatRole(game.role) }}
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        <!-- TODO Translate -->
+                                        Status: 
+                                        <span :class="{
+                                            'text-yellow-600': game.status === 'waiting',
+                                            'text-green-600': game.status === 'playing',
+                                            'text-red-600': game.status === 'finished'
+                                        }">
+                                            {{ formatStatus(game.status) }}
+                                        </span>
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        Created {{ formatRelativeTime(game.timestamp) }}
+                                    </div>
+                                </div>
+                                <button 
+                                    class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 text-sm"
+                                    @click.stop="navigateToGame(game.gameId)"
+                                >
                                     <!-- TODO Translate -->
-                                    Game Code: <span class="text-blue-600">{{ game.gameCode }}</span>
-                                </div>
-                                <div class="text-sm text-gray-500 mt-1">
-                                    <!-- TODO Translate -->
-                                    Role: {{ formatRole(game.role) }}
-                                </div>
-                                <div class="text-sm text-gray-500">
-                                    <!-- TODO Translate -->
-                                    Status: 
-                                    <span :class="{
-                                        'text-yellow-600': game.status === 'waiting',
-                                        'text-green-600': game.status === 'playing',
-                                        'text-red-600': game.status === 'finished'
-                                    }">
-                                        {{ formatStatus(game.status) }}
-                                    </span>
-                                </div>
-                                <div class="text-sm text-gray-500">
-                                    Created {{ formatRelativeTime(game.timestamp) }}
-                                </div>
+                                    {{ game.status === 'waiting' ? 'Join Lobby' : 'Continue Game' }}
+                                </button>
                             </div>
-                            <button 
-                                class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 text-sm"
-                                @click.stop="navigateToGame(game.gameId)"
-                            >
-                                <!-- TODO Translate -->
-                                {{ game.status === 'waiting' ? 'Join Lobby' : 'Continue Game' }}
-                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Finished Games List -->
-            <div class="bg-white rounded-lg shadow-md p-4 md:p-6 max-h-[600px] home-panels overflow-auto">
-                <!-- TODO Translate -->
-                <h3 class="text-lg font-semibold mb-4">Recent Finished Games</h3>
-
-                <div v-if="isLoadingFinished" class="flex justify-center py-6">
-                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-                
-                <div v-else-if="finishedGames.length === 0" class="text-center py-6 text-gray-500">
+    
+                <!-- Finished Games List -->
+                <div class="bg-white rounded-lg shadow-md p-4 md:p-6 max-h-[600px] home-panels overflow-auto">
                     <!-- TODO Translate -->
-                    <p>No finished games found.</p>
-                    <p class="text-sm mt-2">Your completed games will appear here.</p>
-                </div>
-                
-                <div v-else class="space-y-4">
-                    <div 
-                        v-for="game in finishedGames" 
-                        :key="game.gameId" 
-                        class="border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition cursor-pointer touch-manipulation"
-                        @click="navigateToGameAnalytics(game.gameId)"
-                    >
-                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start">
-                            <div class="flex-1">
-                                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2">
-                                    <div class="font-medium">
-                                        <!-- TODO Translate -->
-                                        Game Code: <span class="text-gray-600">{{ game.gameCode }}</span>
-                                    </div>
-                                    <button 
-                                        class="bg-gray-500 text-white py-1 px-3 rounded text-xs hover:bg-gray-600"
-                                        @click.stop="navigateToGameAnalytics(game.gameId)"
-                                    >
-                                        <!-- TODO Translate -->
-                                        Analytics
-                                    </button>
-                                </div>
-                                
-                                <!-- Game Details -->
-                                <div class="space-y-1 text-sm">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-500">
+                    <h3 class="text-lg font-semibold mb-4">Recent Finished Games</h3>
+    
+                    <div v-if="isLoadingFinished" class="flex justify-center py-6">
+                        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                    </div>
+                    
+                    <div v-else-if="finishedGames.length === 0" class="text-center py-6 text-gray-500">
+                        <!-- TODO Translate -->
+                        <p>No finished games found.</p>
+                        <p class="text-sm mt-2">Your completed games will appear here.</p>
+                    </div>
+                    
+                    <div v-else class="space-y-4">
+                        <div 
+                            v-for="game in finishedGames" 
+                            :key="game.gameId" 
+                            class="border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition cursor-pointer touch-manipulation"
+                            @click="navigateToGameAnalytics(game.gameId)"
+                        >
+                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start">
+                                <div class="flex-1">
+                                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2">
+                                        <div class="font-medium">
                                             <!-- TODO Translate -->
-                                            Opponent:
-                                        </span>
-                                        <span class="font-medium">{{ getOpponentName(game) }}</span>
+                                            Game Code: <span class="text-gray-600">{{ game.gameCode }}</span>
+                                        </div>
+                                        <button 
+                                            class="bg-gray-500 text-white py-1 px-3 rounded text-xs hover:bg-gray-600"
+                                            @click.stop="navigateToGameAnalytics(game.gameId)"
+                                        >
+                                            <!-- TODO Translate -->
+                                            Analytics
+                                        </button>
                                     </div>
                                     
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-500">
-                                            <!-- TODO Translate -->
-                                            Result:
-                                        </span>
-                                        <span :class="getResultColor(game)">{{ getGameResult(game) }}</span>
-                                    </div>
-                                    
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-500">
-                                            <!-- TODO Translate -->
-                                            Final Score:
-                                        </span>
-                                        <span class="font-medium">{{ getFinalScore(game) }}</span>
-                                    </div>
-                                    
-                                    
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-500">
-                                            <!-- TODO Translate -->
-                                            Role:
-                                        </span>
-                                        <span>{{ formatRole(game.role) }}</span>
-                                    </div>
-                                    
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-500">
-                                            <!-- TODO Translate -->
-                                            Finished:
-                                        </span>
-                                        <span>{{ formatRelativeTime(game.timestamp) }}</span>
+                                    <!-- Game Details -->
+                                    <div class="space-y-1 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">
+                                                <!-- TODO Translate -->
+                                                Opponent:
+                                            </span>
+                                            <span class="font-medium">{{ getOpponentName(game) }}</span>
+                                        </div>
+                                        
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">
+                                                <!-- TODO Translate -->
+                                                Result:
+                                            </span>
+                                            <span :class="getResultColor(game)">{{ getGameResult(game) }}</span>
+                                        </div>
+                                        
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">
+                                                <!-- TODO Translate -->
+                                                Final Score:
+                                            </span>
+                                            <span class="font-medium">{{ getFinalScore(game) }}</span>
+                                        </div>
+                                        
+                                        
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">
+                                                <!-- TODO Translate -->
+                                                Role:
+                                            </span>
+                                            <span>{{ formatRole(game.role) }}</span>
+                                        </div>
+                                        
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-500">
+                                                <!-- TODO Translate -->
+                                                Finished:
+                                            </span>
+                                            <span>{{ formatRelativeTime(game.timestamp) }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

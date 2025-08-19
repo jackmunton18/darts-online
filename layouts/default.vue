@@ -2,7 +2,7 @@
 <template>
   <div>
     <Header />
-    <main class="pt-16">
+    <main class="pt-20">
       <NuxtPage />
     </main>
   </div>
